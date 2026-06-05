@@ -1,4 +1,11 @@
 #include "settingsdialog.h"
+#include "settings/settings_navigate_item.h"
+#include "settings/settings_toggle_item.h"
+#include "settings/settings_choice_item.h"
+#include "settings/settings_input_item.h"
+#include "settings/font_settings_dialog.h"
+#include "settings/opacity_dialog.h"
+#include "config/config_manager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 
@@ -15,6 +22,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 SettingsDialog::~SettingsDialog()
 {
+    if (m_observerId)
+        ConfigManager::instance().removeObserver(m_observerId);
 }
 
 QScrollArea *SettingsDialog::contentArea() const
@@ -37,9 +46,11 @@ void SettingsDialog::addItemToGroup(SettingsGroup *group, SettingsItemWidget *it
 
 void SettingsDialog::onApply()
 {
-    for (auto *item : m_allItems) {
+    for (auto *item : m_allItems)
         item->apply();
-    }
+
+    ConfigManager::instance().save();
+    updateButtonStates();
 }
 
 void SettingsDialog::onOk()
@@ -51,6 +62,85 @@ void SettingsDialog::onOk()
 void SettingsDialog::onCancel()
 {
     close();
+}
+
+void SettingsDialog::onItemValueChanged()
+{
+    if (m_initializing)
+        return;
+
+    auto *item = qobject_cast<SettingsItemWidget *>(sender());
+    if (!item || item->settingsKey().isEmpty())
+        return;
+
+    syncItemToConfig(item);
+}
+
+void SettingsDialog::onDirtyStateChanged(bool dirty)
+{
+    m_applyBtn->setEnabled(dirty);
+    m_okBtn->setEnabled(dirty);
+}
+
+void SettingsDialog::updateButtonStates()
+{
+    bool dirty = ConfigManager::instance().hasChanges();
+    m_applyBtn->setEnabled(dirty);
+    m_okBtn->setEnabled(dirty);
+}
+
+void SettingsDialog::syncItemToConfig(SettingsItemWidget *item)
+{
+    auto *mgr = &ConfigManager::instance();
+    const QString &key = item->settingsKey();
+
+    if (auto *toggle = qobject_cast<SettingsToggleItem *>(item)) {
+        mgr->setValue(key, toggle->isChecked());
+    } else if (auto *choice = qobject_cast<SettingsChoiceItem *>(item)) {
+        mgr->setValue(key, choice->currentChoice());
+    } else if (auto *input = qobject_cast<SettingsInputItem *>(item)) {
+        mgr->setValue(key, input->text());
+    }
+}
+
+void SettingsDialog::loadConfigToItems()
+{
+    m_initializing = true;
+
+    auto *mgr = &ConfigManager::instance();
+    mgr->load({});
+
+    for (auto *item : m_allItems) {
+        const QString &key = item->settingsKey();
+        if (key.isEmpty())
+            continue;
+
+        QVariant val = mgr->value(key);
+
+        if (auto *toggle = qobject_cast<SettingsToggleItem *>(item)) {
+            if (val.isValid()) {
+                toggle->setChecked(val.toBool());
+            } else {
+                mgr->setValue(key, toggle->isChecked());
+            }
+        } else if (auto *choice = qobject_cast<SettingsChoiceItem *>(item)) {
+            if (val.isValid()) {
+                choice->setCurrentChoice(val.toString());
+            } else {
+                mgr->setValue(key, choice->currentChoice());
+            }
+        } else if (auto *input = qobject_cast<SettingsInputItem *>(item)) {
+            if (val.isValid()) {
+                input->setText(val.toString());
+            } else {
+                mgr->setValue(key, input->text());
+            }
+        }
+    }
+
+    mgr->takeSnapshot();
+    m_initializing = false;
+    updateButtonStates();
 }
 
 void SettingsDialog::setupUi()
@@ -104,6 +194,11 @@ void SettingsDialog::setupUi()
         "QPushButton:hover {"
         "  background: #e8e8e8;"
         "  border-color: #a0a0a0;"
+        "}"
+        "QPushButton:disabled {"
+        "  color: #aaaaaa;"
+        "  background: #f5f5f5;"
+        "  border-color: #d8d8d8;"
         "}";
 
     m_applyBtn = new QPushButton(tr("Apple"), this);
@@ -113,6 +208,9 @@ void SettingsDialog::setupUi()
     m_applyBtn->setStyleSheet(btnStyle);
     m_okBtn->setStyleSheet(btnStyle);
     m_cancelBtn->setStyleSheet(btnStyle);
+
+    m_applyBtn->setEnabled(false);
+    m_okBtn->setEnabled(false);
 
     connect(m_applyBtn, &QPushButton::clicked, this, &SettingsDialog::onApply);
     connect(m_okBtn, &QPushButton::clicked, this, &SettingsDialog::onOk);
@@ -130,4 +228,31 @@ void SettingsDialog::buildContent()
 {
     setStyleSheet("QDialog { background: #f3f3f3; }");
     SettingsContentBuilder::build(this);
+
+    for (auto *item : m_allItems) {
+        connect(item, &SettingsItemWidget::valueChanged,
+                this, &SettingsDialog::onItemValueChanged);
+
+        auto *navItem = qobject_cast<SettingsNavigateItem *>(item);
+        if (!navItem)
+            continue;
+
+        const QString &target = navItem->target();
+        if (target == "font") {
+            connect(navItem, &SettingsNavigateItem::clicked, this, [this]() {
+                FontSettingsDialog dlg(this);
+                dlg.exec();
+            });
+        } else if (target == "opacity") {
+            connect(navItem, &SettingsNavigateItem::clicked, this, [this]() {
+                OpacityDialog dlg(this);
+                dlg.exec();
+            });
+        }
+    }
+
+    loadConfigToItems();
+
+    m_observerId = ConfigManager::instance().addObserver(
+        [this](bool dirty) { onDirtyStateChanged(dirty); });
 }

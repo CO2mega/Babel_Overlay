@@ -63,6 +63,17 @@ void SettingsItemWidget::setChevronVisible(bool visible)
     m_chevronVisible = visible;
 }
 
+void SettingsItemWidget::setSettingsKey(const QString &key)
+{
+    m_settingsKey = key;
+}
+
+void SettingsItemWidget::configure(const QVariantMap &props)
+{
+    if (props.contains("key"))
+        m_settingsKey = props["key"].toString();
+}
+
 void SettingsItemWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);

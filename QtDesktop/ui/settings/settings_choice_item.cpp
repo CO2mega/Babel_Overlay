@@ -21,6 +21,9 @@ SettingsChoiceItem::SettingsChoiceItem(QWidget *parent)
     if (lay) {
         lay->addWidget(m_combo);
     }
+
+    connect(m_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsChoiceItem::valueChanged);
 }
 
 void SettingsChoiceItem::setChoices(const QStringList &choices)
@@ -58,6 +61,7 @@ bool SettingsChoiceItem::isModified() const
 
 void SettingsChoiceItem::configure(const QVariantMap &props)
 {
+    SettingsItemWidget::configure(props);
     if (props.contains("choices")) {
         setChoices(props["choices"].toStringList());
     }

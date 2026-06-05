@@ -13,6 +13,8 @@ SettingsToggleItem::SettingsToggleItem(QWidget *parent)
     if (lay) {
         lay->addWidget(m_toggle);
     }
+
+    connect(m_toggle, &QCheckBox::toggled, this, &SettingsToggleItem::valueChanged);
 }
 
 void SettingsToggleItem::setChecked(bool checked)
@@ -45,6 +47,7 @@ bool SettingsToggleItem::isModified() const
 
 void SettingsToggleItem::configure(const QVariantMap &props)
 {
+    SettingsItemWidget::configure(props);
     if (props.contains("checked"))
         setChecked(props["checked"].toBool());
 }

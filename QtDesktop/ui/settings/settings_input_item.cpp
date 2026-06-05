@@ -21,6 +21,8 @@ SettingsInputItem::SettingsInputItem(QWidget *parent)
     if (lay) {
         lay->addWidget(m_input);
     }
+
+    connect(m_input, &QLineEdit::textChanged, this, &SettingsInputItem::valueChanged);
 }
 
 void SettingsInputItem::setText(const QString &text)
@@ -58,6 +60,7 @@ bool SettingsInputItem::isModified() const
 
 void SettingsInputItem::configure(const QVariantMap &props)
 {
+    SettingsItemWidget::configure(props);
     if (props.contains("text"))
         setText(props["text"].toString());
     if (props.contains("placeholder"))

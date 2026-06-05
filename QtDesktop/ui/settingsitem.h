@@ -30,12 +30,19 @@ public:
     void setDescription(const QString &desc);
     QString itemTitle() const { return m_title; }
 
+    void setSettingsKey(const QString &key);
+    QString settingsKey() const override { return m_settingsKey; }
+
     void apply() override {}
     void reset() override {}
     bool isModified() const override { return m_modified; }
 
     void setSeparatorVisible(bool visible);
     void setChevronVisible(bool visible);
+    virtual void configure(const QVariantMap &props) override;
+
+signals:
+    void valueChanged();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -44,6 +51,7 @@ protected:
 
     QString m_title;
     QString m_description;
+    QString m_settingsKey;
     bool m_modified = false;
     bool m_hovered = false;
     bool m_separatorVisible = true;

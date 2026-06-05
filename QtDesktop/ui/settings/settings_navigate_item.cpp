@@ -17,3 +17,14 @@ void SettingsNavigateItem::mousePressEvent(QMouseEvent *event)
     }
     SettingsItemWidget::mousePressEvent(event);
 }
+
+void SettingsNavigateItem::setTarget(const QString &target)
+{
+    m_target = target;
+}
+
+void SettingsNavigateItem::configure(const QVariantMap &props)
+{
+    if (props.contains("target"))
+        m_target = props["target"].toString();
+}
