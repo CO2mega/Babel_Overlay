@@ -1,4 +1,5 @@
 #include "settings_choice_item.h"
+#include <QCoreApplication>
 
 REGISTER_SETTINGS_ITEM(SettingsChoiceItem, "choice")
 
@@ -28,35 +29,47 @@ SettingsChoiceItem::SettingsChoiceItem(QWidget *parent)
 
 void SettingsChoiceItem::setChoices(const QStringList &choices)
 {
-    m_combo->addItems(choices);
+    m_combo->clear();
+    for (const QString &raw : choices) {
+        QString display = QCoreApplication::translate("SettingsDialog",
+            raw.toUtf8().constData());
+        m_combo->addItem(display, raw);
+    }
 }
 
 QString SettingsChoiceItem::currentChoice() const
 {
-    return m_combo->currentText();
+    return m_combo->currentData().toString();
 }
 
 void SettingsChoiceItem::setCurrentChoice(const QString &choice)
 {
-    m_combo->setCurrentText(choice);
-    m_defaultChoice = choice;
+    int idx = m_combo->findData(choice);
+    if (idx >= 0) {
+        m_combo->setCurrentIndex(idx);
+    } else {
+        m_combo->setCurrentText(choice);
+    }
+    m_defaultChoice = currentChoice();
 }
 
 void SettingsChoiceItem::apply()
 {
-    m_defaultChoice = m_combo->currentText();
+    m_defaultChoice = currentChoice();
     m_modified = false;
 }
 
 void SettingsChoiceItem::reset()
 {
-    m_combo->setCurrentText(m_defaultChoice);
+    int idx = m_combo->findData(m_defaultChoice);
+    if (idx >= 0)
+        m_combo->setCurrentIndex(idx);
     m_modified = false;
 }
 
 bool SettingsChoiceItem::isModified() const
 {
-    return m_combo->currentText() != m_defaultChoice;
+    return currentChoice() != m_defaultChoice;
 }
 
 void SettingsChoiceItem::configure(const QVariantMap &props)

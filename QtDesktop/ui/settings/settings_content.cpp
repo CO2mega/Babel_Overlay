@@ -27,6 +27,8 @@ static const char *_tr_content_strings[] = {
     QT_TRANSLATE_NOOP("SettingsDialog", "Sample text preview"),
     QT_TRANSLATE_NOOP("SettingsDialog", "Window opacity"),
     QT_TRANSLATE_NOOP("SettingsDialog", "100%"),
+    QT_TRANSLATE_NOOP("SettingsDialog", "Target PID"),
+    QT_TRANSLATE_NOOP("SettingsDialog", "Enter PID or pick"),
 };
 
 // ---- Content registrations ----
@@ -42,6 +44,11 @@ REGISTER_SETTINGS_CONTENT("Audio", "choice",
     {"key", "audio.capture_source"},
     {"choices", QStringList{"System audio", "Process audio"}},
     {"current", "System audio"})
+
+REGISTER_SETTINGS_CONTENT("Audio", "pid",
+    "Target PID", "",
+    {"key", "audio.target_pid"},
+    {"placeholder", "Enter PID or pick"})
 
 REGISTER_SETTINGS_CONTENT("Display", "navigate",
     "Font settings",

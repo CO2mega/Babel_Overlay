@@ -1,4 +1,5 @@
 #include "settings_input_item.h"
+#include <QCoreApplication>
 
 REGISTER_SETTINGS_ITEM(SettingsInputItem, "input")
 
@@ -64,5 +65,6 @@ void SettingsInputItem::configure(const QVariantMap &props)
     if (props.contains("text"))
         setText(props["text"].toString());
     if (props.contains("placeholder"))
-        setPlaceholder(props["placeholder"].toString());
+        setPlaceholder(QCoreApplication::translate("SettingsDialog",
+            props["placeholder"].toString().toUtf8().constData()));
 }

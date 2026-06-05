@@ -216,32 +216,6 @@ const QList<SettingsContentEntry> &SettingsContentRegistry::entries() const
 // SettingsContentBuilder
 // ============================================================================
 
-static QVariant translateVariant(const QVariant &v, const char *context)
-{
-    if (v.typeId() == QMetaType::QString) {
-        return QCoreApplication::translate(context,
-            v.toString().toUtf8().constData());
-    }
-    if (v.typeId() == QMetaType::QStringList) {
-        QStringList result;
-        for (const QString &s : v.toStringList()) {
-            result << QCoreApplication::translate(context,
-                s.toUtf8().constData());
-        }
-        return result;
-    }
-    return v;
-}
-
-static QVariantMap translateProperties(const QVariantMap &props, const char *context)
-{
-    QVariantMap result;
-    for (auto it = props.begin(); it != props.end(); ++it) {
-        result[it.key()] = translateVariant(it.value(), context);
-    }
-    return result;
-}
-
 void SettingsContentBuilder::build(SettingsDialog *dialog)
 {
     const char *ctx = "SettingsDialog";
@@ -264,7 +238,7 @@ void SettingsContentBuilder::build(SettingsDialog *dialog)
 
         item->setItemTitle(QCoreApplication::translate(ctx, entry.title.toUtf8().constData()));
         item->setDescription(QCoreApplication::translate(ctx, entry.description.toUtf8().constData()));
-        item->configure(translateProperties(entry.properties, ctx));
+        item->configure(entry.properties);
 
         dialog->addItemToGroup(group, item);
     }

@@ -251,6 +251,24 @@ void SettingsDialog::buildContent()
         }
     }
 
+    SettingsChoiceItem *captureSourceItem = nullptr;
+    SettingsItemWidget *pidItem = nullptr;
+    for (auto *item : m_allItems) {
+        if (item->settingsKey() == "audio.capture_source")
+            captureSourceItem = qobject_cast<SettingsChoiceItem *>(item);
+        else if (item->settingsKey() == "audio.target_pid")
+            pidItem = item;
+    }
+
+    if (captureSourceItem && pidItem) {
+        auto updatePidVisibility = [captureSourceItem, pidItem]() {
+            pidItem->setVisible(captureSourceItem->currentChoice() == "Process audio");
+        };
+        updatePidVisibility();
+        connect(captureSourceItem, &SettingsItemWidget::valueChanged,
+                this, updatePidVisibility);
+    }
+
     loadConfigToItems();
 
     m_observerId = ConfigManager::instance().addObserver(

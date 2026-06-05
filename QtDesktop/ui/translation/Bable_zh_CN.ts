@@ -75,22 +75,22 @@
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="../settingsdialog.cpp" line="13"/>
+        <location filename="../settingsdialog.cpp" line="17"/>
         <source>settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../settingsdialog.cpp" line="112"/>
+        <location filename="../settingsdialog.cpp" line="204"/>
         <source>Apple</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../settingsdialog.cpp" line="113"/>
+        <location filename="../settingsdialog.cpp" line="205"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../settingsdialog.cpp" line="114"/>
+        <location filename="../settingsdialog.cpp" line="206"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -203,6 +203,16 @@
         <location filename="../settings/settings_content.cpp" line="29"/>
         <source>100%</source>
         <translation>100%</translation>
+    </message>
+    <message>
+        <location filename="../settings/settings_content.cpp" line="30"/>
+        <source>Target PID</source>
+        <translation>目标 PID</translation>
+    </message>
+    <message>
+        <location filename="../settings/settings_content.cpp" line="31"/>
+        <source>Enter PID or pick</source>
+        <translation>输入 PID 或拾取窗口</translation>
     </message>
 </context>
 </TS>
