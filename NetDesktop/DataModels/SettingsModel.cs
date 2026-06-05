@@ -17,8 +17,8 @@ public class SettingsModel
     public string FontWeight { get; set; } = "SemiBold";
 
     // Streaming STT — Endpoint detection
-    public float EndpointMinTrailingSilence { get; set; } = 2.4f;
-    public float EndpointMinUtteranceLength { get; set; } = 0.5f;
+    public float EndpointMinTrailingSilence { get; set; } = 1.2f;
+    public float EndpointMinUtteranceLength { get; set; } = 2.0f;
 
     // Translation
     public TranslationEngine Engine { get; set; } = TranslationEngine.Google;

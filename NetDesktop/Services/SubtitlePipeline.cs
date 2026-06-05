@@ -7,15 +7,13 @@ using NetDesktop.Services.Subtitle;
 namespace NetDesktop.Services;
 
 /// <summary>
-/// 全流程管线：WASAPI音频捕获，重采样，VAD+STT，滑动窗口翻译，字幕管理器。
-/// 调用方在构造后、Start() 前订阅 Manager 的事件。
+/// 全流程管线：WASAPI音频捕获，重采样，流式STT，标点恢复，滑动窗口翻译，字幕管理器。
 /// </summary>
 public class SubtitlePipeline : IDisposable
 {
     private AudioCaptureService? _capture;
     private AudioResampler? _resampler;
     private SttService? _stt;
-    private AdaptiveVadController? _adaptiveVad;
     private ContextualTranslator? _translator;
     private readonly SettingsModel _settings;
     private readonly object _lock = new();
@@ -27,32 +25,22 @@ public class SubtitlePipeline : IDisposable
     public SubtitleManager Manager { get; } = new SubtitleManager();
 
     /// <summary>
-    /// STT 服务实例（Start() 后可访问，用于参数调整）。
+    /// STT 服务实例（Start() 后可访问）。
     /// </summary>
     public SttService? Stt => _stt;
 
     /// <summary>
-    /// VAD 是否正在检测到语音活动，供 UI 轮询显示状态。
-    /// </summary>
-    public bool IsSpeechActive => _stt?.IsSpeechActive ?? false;
-
-    /// <summary>
-    /// 管道运行过程中的错误（模型加载、音频捕获、STT 解码等）。
+    /// 管道运行过程中的错误。
     /// </summary>
     public event Action<string>? Error;
 
-    /// <summary>
-    /// 创建管道实例。调用 <see cref="Start"/> 启动全部服务。
-    /// </summary>
-    /// <param name="settings">应用配置（VAD 参数、翻译引擎、模型路径等）。</param>
     public SubtitlePipeline(SettingsModel settings)
     {
         _settings = settings;
     }
 
     /// <summary>
-    /// 启动完整管道：初始化翻译引擎 → 加载 STT 模型 → 启动 WASAPI 捕获。
-    /// 幂等：多次调用无效。
+    /// 启动完整管道：标点模型 → 翻译引擎 → 流式STT → WASAPI捕获。
     /// </summary>
     public void Start()
     {
@@ -64,6 +52,7 @@ public class SubtitlePipeline : IDisposable
 
         try
         {
+            // 翻译引擎
             ITranslationService engine = _settings.Engine switch
             {
                 TranslationEngine.DeepL => new DeepLTranslationService(_settings.DeepLApiKey, _settings.DeepLServerUrl),
@@ -74,17 +63,26 @@ public class SubtitlePipeline : IDisposable
             _translator.OnTranslationReady += (original, translated) =>
                 Manager.UpdateTranslation(original, translated);
 
+            // STT
             _stt = new SttService(_settings);
-            _stt.OnSpeechRecognized += entry =>
+
+            // partial → 更新原文 + 节流翻译
+            _stt.OnPartialResult += entry =>
             {
-                Manager.OnNewRecognition(entry);
-                _adaptiveVad?.OnNewSentence(entry);
+                Manager.OnPartialRecognition(entry);
+                _ = _translator.TranslateThrottled(entry.OriginalText);
+            };
+
+            // final → 确认字幕 + 带上下文翻译
+            _stt.OnFinalResult += entry =>
+            {
+                Manager.OnFinalRecognition(entry);
                 _ = _translator.TranslateNewSentence(entry.OriginalText);
             };
+
             _stt.Error += msg => Error?.Invoke(msg);
             _stt.Initialize(_settings);
 
-            _adaptiveVad = new AdaptiveVadController(_stt, _settings);
             _resampler = new AudioResampler();
 
             _capture = new AudioCaptureService();
@@ -107,9 +105,6 @@ public class SubtitlePipeline : IDisposable
     /// <summary>
     /// 运行时切换翻译引擎。
     /// </summary>
-    /// <param name="engine">目标引擎。</param>
-    /// <param name="apiKey">DeepL API Key（仅 DeepL 需要）。</param>
-    /// <param name="serverUrl">DeepL API 端点（仅 DeepL 需要）。</param>
     public void SwitchTranslationEngine(TranslationEngine engine, string? apiKey = null, string? serverUrl = null, string? googleApiKey = null)
     {
         ITranslationService newEngine = engine switch
@@ -126,21 +121,6 @@ public class SubtitlePipeline : IDisposable
         if (googleApiKey != null) _settings.GoogleApiKey = googleApiKey;
     }
 
-    /// <summary>
-    /// 切换 VAD 预设模式，自动设置对应的 MinSilenceDuration 并立即重建 VAD。
-    /// </summary>
-    /// <param name="preset">预设：Realtime(0.3s) / Accurate(0.8s) / Auto / Custom。</param>
-    public void UpdateVadMode(VadPreset preset)
-    {
-        _settings.VadMode = preset;
-        if (preset == VadPreset.Realtime) _settings.MinSilenceDuration = 0.3f;
-        else if (preset == VadPreset.Accurate) _settings.MinSilenceDuration = 0.8f;
-        _stt?.RebuildVad(_settings);
-    }
-
-    /// <summary>
-    /// 停止音频捕获，将当前字幕推入历史。
-    /// </summary>
     public void Stop()
     {
         lock (_lock)
@@ -152,9 +132,6 @@ public class SubtitlePipeline : IDisposable
         Manager.Clear();
     }
 
-    /// <summary>
-    /// 停止管道并释放所有资源（WASAPI、STT 模型）。
-    /// </summary>
     public void Dispose()
     {
         Stop();

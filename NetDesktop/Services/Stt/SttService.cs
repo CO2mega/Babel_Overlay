@@ -19,8 +19,8 @@ public class SttService : IDisposable
     private readonly string _decoderPath;
     private readonly string _joinerPath;
     private readonly string _tokensPath;
-    private readonly float _minTrailingSilence;
-    private readonly float _minUtteranceLength;
+    private float _minTrailingSilence;
+    private float _minUtteranceLength;
 
     /// <summary>
     /// 实时partial识别结果（边说边出）。
@@ -80,40 +80,32 @@ public class SttService : IDisposable
         var config = new OnlineRecognizerConfig
         {
             FeatConfig = new FeatureConfig { SampleRate = 16000, FeatureDim = 80 },
-            ModelConfig = new OnlineTransducerModelConfig
+            ModelConfig = new OnlineModelConfig
             {
-                Encoder = _encoderPath,
-                Decoder = _decoderPath,
-                Joiner = _joinerPath
+                Transducer = new OnlineTransducerModelConfig
+                {
+                    Encoder = _encoderPath,
+                    Decoder = _decoderPath,
+                    Joiner = _joinerPath
+                },
+                Tokens = _tokensPath,
+                NumThreads = 4,
+                Provider = "cpu"
             },
-            Tokens = _tokensPath,
-            NumThreads = 4,
-            Provider = "cpu",
-            EnableEndpoint = true,
-            Rule1 = new OnlineEndpointRule
-            {
-                MustContainNonSilence = false,
-                MinTrailingSilence = _minTrailingSilence,
-                MinUtteranceLength = _minUtteranceLength
-            },
-            Rule2 = new OnlineEndpointRule
-            {
-                MustContainNonSilence = true,
-                MinTrailingSilence = 1.2f,
-                MinUtteranceLength = 0
-            },
-            Rule3 = new OnlineEndpointRule
-            {
-                MustContainNonSilence = false,
-                MinTrailingSilence = 0,
-                MinUtteranceLength = 20f
-            }
+            DecodingMethod = "greedy_search",
+            EnableEndpoint = 1,
+            Rule1MinTrailingSilence = _minTrailingSilence,
+            Rule2MinTrailingSilence = 1.2f,
+            Rule3MinUtteranceLength = _minUtteranceLength
         };
 
-        _recognizer?.Dispose();
-        _stream?.Dispose();
-        _recognizer = new OnlineRecognizer(config);
-        _stream = _recognizer.CreateStream();
+        lock (_lock)
+        {
+            _recognizer?.Dispose();
+            _stream?.Dispose();
+            _recognizer = new OnlineRecognizer(config);
+            _stream = _recognizer.CreateStream();
+        }
         Console.WriteLine("[STT] 流式模型加载成功");
     }
 
@@ -177,13 +169,14 @@ public class SttService : IDisposable
     }
 
     /// <summary>
-    /// 更新端点检测灵敏度。
+    /// 更新端点检测灵敏度并重建识别器。
     /// </summary>
     public void UpdateEndpointConfig(float minTrailingSilence, float minUtteranceLength)
     {
-        // 需要重建recognizer才能应用新配置
-        // 暂存参数，下次Initialize时生效
+        _minTrailingSilence = minTrailingSilence;
+        _minUtteranceLength = minUtteranceLength;
         Console.WriteLine($"[STT] 端点参数更新: trailingSilence={minTrailingSilence}s utteranceLength={minUtteranceLength}s");
+        InitRecognizer();
     }
 
     public void Dispose()

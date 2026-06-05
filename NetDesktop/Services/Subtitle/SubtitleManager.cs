@@ -32,32 +32,44 @@ public class SubtitleManager
     private DateTime _lastUpdateTime = DateTime.MinValue;
 
     /// <summary>
-    /// 新语音识别结果到达时调用。500ms 内的连续结果视为 STT 修正，直接覆盖当前条目；
-    /// 超时则将当前条目确认后加入历史，并替换为新条目。
+    /// 实时partial识别结果。更新当前字幕文本，不推入历史。
     /// </summary>
-    /// <param name="entry">新识别出的字幕条目。</param>
-    public void OnNewRecognition(SubtitleEntry entry)
+    public void OnPartialRecognition(SubtitleEntry entry)
     {
-        var timeSinceLast = DateTime.Now - _lastUpdateTime;
-
-        if (timeSinceLast.TotalMilliseconds < 500 && Current != null && !Current.IsConfirmed)
+        if (Current == null || Current.IsConfirmed)
         {
-            Current.OriginalText = entry.OriginalText;
-            Current.Timestamp = entry.Timestamp;
-            Current.Duration = entry.Duration;
+            Current = entry;
         }
         else
         {
-            if (Current != null)
-            {
-                Current.IsConfirmed = true;
-                AddToHistory(Current);
-            }
-            Current = entry;
+            Current.OriginalText = entry.OriginalText;
+            Current.Timestamp = entry.Timestamp;
         }
-
         _lastUpdateTime = DateTime.Now;
         CurrentChanged?.Invoke(Current);
+    }
+
+    /// <summary>
+    /// 最终识别结果（端点检测后）。将当前条目推入历史，设置新条目为当前。
+    /// </summary>
+    public void OnFinalRecognition(SubtitleEntry entry)
+    {
+        if (Current != null)
+        {
+            Current.IsConfirmed = true;
+            AddToHistory(Current);
+        }
+        Current = entry;
+        _lastUpdateTime = DateTime.Now;
+        CurrentChanged?.Invoke(Current);
+    }
+
+    /// <summary>
+    /// 兼容旧接口：新语音识别结果到达时调用。
+    /// </summary>
+    public void OnNewRecognition(SubtitleEntry entry)
+    {
+        OnFinalRecognition(entry);
     }
 
     /// <summary>

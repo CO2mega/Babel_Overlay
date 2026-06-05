@@ -470,27 +470,33 @@
                                            VerticalAlignment="Center"/>
                             </Grid>
 
-                            <!-- VAD SECTION -->
-                            <TextBlock Text="语音检测" Style="{StaticResource SectionHeader}"/>
+                            <!-- ENDPOINT SECTION -->
+                            <TextBlock Text="端点检测" Style="{StaticResource SectionHeader}"/>
 
-                            <TextBlock Text="VAD 预设" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox x:Name="CbVadPreset" Style="{StaticResource ComboStyle}" Margin="0,0,0,10">
-                                <ComboBoxItem>Auto</ComboBoxItem>
-                                <ComboBoxItem>Realtime</ComboBoxItem>
-                                <ComboBoxItem>Accurate</ComboBoxItem>
-                                <ComboBoxItem>Custom</ComboBoxItem>
-                            </ComboBox>
+                            <TextBlock Text="静音结束阈值（秒）" Style="{StaticResource FieldLabel}"/>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="36"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SlTrailingSilence" Grid.Column="0" Minimum="0.5" Maximum="5.0"
+                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                        VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblTrailingSilence" Grid.Column="1"
+                                           Foreground="#AAAAAA" FontSize="11"
+                                           VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </Grid>
 
-                            <TextBlock Text="VAD 灵敏度阈值" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="最短语音长度（秒）" Style="{StaticResource FieldLabel}"/>
                             <Grid Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="36"/>
                                 </Grid.ColumnDefinitions>
-                                <Slider x:Name="SlVadThreshold" Grid.Column="0" Minimum="0.0" Maximum="1.0"
-                                        TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                <Slider x:Name="SlUtteranceLength" Grid.Column="0" Minimum="0.1" Maximum="5.0"
+                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
                                         VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblVadThreshold" Grid.Column="1"
+                                <TextBlock x:Name="LblUtteranceLength" Grid.Column="1"
                                            Foreground="#AAAAAA" FontSize="11"
                                            VerticalAlignment="Center" Margin="4,0,0,0"/>
                             </Grid>
