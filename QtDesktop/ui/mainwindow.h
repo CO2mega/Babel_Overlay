@@ -10,6 +10,7 @@
 #include <QPainterPath>
 #include <QMouseEvent>
 #include "subtitlewidget.h"
+#include "settingsdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,6 +35,7 @@ protected:
 
 private:
     SubtitleWidget *subtitleWidget;
+    SettingsDialog *settingsDialog;
     QPoint dragPosition;
 
     // 用于记录缩放状态的枚举和变量

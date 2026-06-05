@@ -50,6 +50,14 @@ void MainWindow::setupUi(QMainWindow *MainWindow)
     closeBtn->setStyleSheet(btnStyle);
     connect(closeBtn, &QPushButton::clicked, this, &QWidget::close);
 
+    settingsDialog = new SettingsDialog(this);
+
+    connect(settingsBtn, &QPushButton::clicked, this, [this]() {
+        settingsDialog->show();
+        settingsDialog->raise();
+        settingsDialog->activateWindow();
+    });
+
     QHBoxLayout *btnLayout = new QHBoxLayout(); 
     btnLayout->setContentsMargins(0, 0, 0, 0);
     btnLayout->setSpacing(5);
