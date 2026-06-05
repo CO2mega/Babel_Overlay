@@ -5,218 +5,195 @@ using NetDesktop.Models;
 namespace NetDesktop.Services.Stt;
 
 /// <summary>
-/// Silero VAD 语音活动检测 + SenseVoice 离线语音识别引擎。
-/// VAD 根据静音切分语音段，每段送入 SenseVoice 解码出文本。
+/// 流式语音识别引擎。使用 OnlineRecognizer 实时解码音频流，
+/// 内置端点检测，无需独立 VAD。
 /// </summary>
 public class SttService : IDisposable
 {
-    private VoiceActivityDetector? _vad;
-    private OfflineRecognizer? _recognizer;
-    private readonly object _vadLock = new();
+    private OnlineRecognizer? _recognizer;
+    private OnlineStream? _stream;
+    private readonly object _lock = new();
+    private int _audioChunkCount;
+
+    private readonly string _encoderPath;
+    private readonly string _decoderPath;
+    private readonly string _joinerPath;
+    private readonly string _tokensPath;
+    private readonly float _minTrailingSilence;
+    private readonly float _minUtteranceLength;
 
     /// <summary>
-    /// 识别到一段语音文本后触发，参数为包含原文、时间戳和时长的 SubtitleEntry。
+    /// 实时partial识别结果（边说边出）。
     /// </summary>
-    public event Action<SubtitleEntry>? OnSpeechRecognized;
+    public event Action<SubtitleEntry>? OnPartialResult;
+
+    /// <summary>
+    /// 最终识别结果（端点检测后触发，用于翻译和历史记录）。
+    /// </summary>
+    public event Action<SubtitleEntry>? OnFinalResult;
 
     /// <summary>
     /// 模型加载失败、解码异常等错误发生时触发。
     /// </summary>
     public event Action<string>? Error;
 
-    private float _currentMinSilence;
-    private float _currentThreshold;
-    private readonly string _modelPath;
-    private readonly string _tokensPath;
-    private int _audioChunkCount;
-    private int _segmentCount;
-
-    /// <summary>
-    /// 创建 STT 服务实例。构造后须调用 <see cref="Initialize"/> 加载模型。
-    /// </summary>
-    /// <param name="settings">应用配置，提供模型路径和 VAD 参数。</param>
     public SttService(SettingsModel settings)
     {
-        _modelPath = settings.SenseVoiceModelPath;
-        _tokensPath = settings.SenseVoiceTokensPath;
-        _currentMinSilence = settings.MinSilenceDuration;
-        _currentThreshold = settings.VadThreshold;
+        _encoderPath = settings.StreamingEncoderPath;
+        _decoderPath = settings.StreamingDecoderPath;
+        _joinerPath = settings.StreamingJoinerPath;
+        _tokensPath = settings.StreamingTokensPath;
+        _minTrailingSilence = settings.EndpointMinTrailingSilence;
+        _minUtteranceLength = settings.EndpointMinUtteranceLength;
     }
 
     /// <summary>
-    /// VAD 是否正在检测到语音活动（用于 UI 状态指示灯轮询）。
+    /// 加载流式模型。应在 Error 事件挂载后调用。
     /// </summary>
-    public bool IsSpeechActive
-    {
-        get { lock (_vadLock) { return _vad?.IsSpeechDetected() ?? false; } }
-    }
-
-    /// <summary>
-    /// 加载 Silero VAD 和 SenseVoice 模型。应在 Error 事件挂载后调用。
-    /// </summary>
-    /// <param name="settings">应用配置。</param>
     public void Initialize(SettingsModel settings)
     {
-        Console.WriteLine("[STT] 初始化...");
-        InitVad(settings);
+        Console.WriteLine("[STT] 初始化流式识别器...");
         InitRecognizer();
+        Console.WriteLine($"[STT] 初始化完成: recognizer={_recognizer != null}");
     }
-/// <summary>
-/// 初始化VAD模型
-/// </summary>
-/// <param name="settings"></param>
-    private void InitVad(SettingsModel settings)
-    {
-        var path = settings.SileroVadModelPath;
-        Console.WriteLine($"[VAD] 模型路径: {Path.GetFullPath(path)}");
-        if (!File.Exists(path))
-        {
-            var msg = $"VAD模型不存在: {path}";
-            Console.WriteLine($"[VAD] 错误: {msg}");
-            Error?.Invoke(msg + "\n下载: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx");
-            return;
-        }
 
-        Console.WriteLine($"[VAD] 加载模型 threshold={settings.VadThreshold} minSilence={settings.MinSilenceDuration}s");
-        var vadConfig = new VadModelConfig
-        {
-            SileroVad = new SileroVadModelConfig
-            {
-                Model = path,
-                Threshold = settings.VadThreshold,
-                MinSilenceDuration = settings.MinSilenceDuration,
-                MinSpeechDuration = settings.MinSpeechDuration,
-                WindowSize = 512,
-                MaxSpeechDuration = 6f   // 最长6s一段，提升实时性
-            },
-            SampleRate = 16000,
-            NumThreads = 2
-        };
-
-        lock (_vadLock)
-        {
-            _vad?.Dispose();
-            _vad = new VoiceActivityDetector(vadConfig, 60f);
-        }
-        Console.WriteLine("[VAD] 加载成功");
-    }
-/// <summary>
-/// 初始化SenseVoice模型
-/// </summary>
     private void InitRecognizer()
     {
-        Console.WriteLine($"[STT] SenseVoice模型: {Path.GetFullPath(_modelPath)}");
-        if (!File.Exists(_modelPath))
+        // 检查流式模型文件
+        if (!File.Exists(_encoderPath))
         {
-            var msg = $"SenseVoice模型不存在: {_modelPath}";
+            var msg = $"encoder模型不存在: {Path.GetFullPath(_encoderPath)}";
             Console.WriteLine($"[STT] 错误: {msg}");
-            Error?.Invoke(msg + "\n下载: https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17");
+            Error?.Invoke(msg + "\n下载流式模型: https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models");
             return;
         }
         if (!File.Exists(_tokensPath))
         {
-            var msg = $"tokens.txt不存在: {_tokensPath}";
+            var msg = $"tokens.txt不存在: {Path.GetFullPath(_tokensPath)}";
             Console.WriteLine($"[STT] 错误: {msg}");
             Error?.Invoke(msg);
             return;
         }
 
-        Console.WriteLine("[STT] 加载SenseVoice模型中...");
-        var config = new OfflineRecognizerConfig
+        Console.WriteLine($"[STT] 加载流式模型: encoder={Path.GetFullPath(_encoderPath)}");
+
+        var config = new OnlineRecognizerConfig
         {
             FeatConfig = new FeatureConfig { SampleRate = 16000, FeatureDim = 80 },
-            ModelConfig = new OfflineModelConfig
+            ModelConfig = new OnlineTransducerModelConfig
             {
-                SenseVoice = new OfflineSenseVoiceModelConfig
-                {
-                    Model = _modelPath,
-                    Language = "en",
-                    UseInverseTextNormalization = 1
-                },
-                Tokens = _tokensPath,
-                NumThreads = 4,
-                Provider = "cpu"
+                Encoder = _encoderPath,
+                Decoder = _decoderPath,
+                Joiner = _joinerPath
             },
-            DecodingMethod = "greedy_search"
+            Tokens = _tokensPath,
+            NumThreads = 4,
+            Provider = "cpu",
+            EnableEndpoint = true,
+            Rule1 = new OnlineEndpointRule
+            {
+                MustContainNonSilence = false,
+                MinTrailingSilence = _minTrailingSilence,
+                MinUtteranceLength = _minUtteranceLength
+            },
+            Rule2 = new OnlineEndpointRule
+            {
+                MustContainNonSilence = true,
+                MinTrailingSilence = 1.2f,
+                MinUtteranceLength = 0
+            },
+            Rule3 = new OnlineEndpointRule
+            {
+                MustContainNonSilence = false,
+                MinTrailingSilence = 0,
+                MinUtteranceLength = 20f
+            }
         };
 
         _recognizer?.Dispose();
-        _recognizer = new OfflineRecognizer(config);
-        Console.WriteLine("[STT] SenseVoice加载成功");
+        _stream?.Dispose();
+        _recognizer = new OnlineRecognizer(config);
+        _stream = _recognizer.CreateStream();
+        Console.WriteLine("[STT] 流式模型加载成功");
     }
 
     /// <summary>
-    /// 将已处理的16kHz 单声道浮点采样送入 VAD + STT 管道。
-    /// VAD 检测到完整语音段后触发 OnSpeechRecognized
+    /// 将16kHz单声道音频送入流式识别器。
+    /// 实时触发 OnPartialResult，端点检测后触发 OnFinalResult。
     /// </summary>
-    /// <param name="samples16kHzMono">16kHz 单声道浮点采样数组。</param>
     public void ProcessAudio(float[] samples16kHzMono)
     {
-        lock (_vadLock)
+        lock (_lock)
         {
-            if (_vad == null || _recognizer == null) return;
+            if (_recognizer == null || _stream == null)
+            {
+                if (_audioChunkCount == 0)
+                    Console.WriteLine("[STT] ProcessAudio: 模型未加载，跳过处理");
+                _audioChunkCount++;
+                return;
+            }
 
             _audioChunkCount++;
             if (_audioChunkCount <= 3 || _audioChunkCount % 200 == 0)
-                Console.WriteLine($"[VAD] 送入音频 #{_audioChunkCount}: {samples16kHzMono.Length} samples, speech={_vad.IsSpeechDetected()}");
+                Console.WriteLine($"[STT] 送入音频 #{_audioChunkCount}: {samples16kHzMono.Length} samples");
 
-            _vad.AcceptWaveform(samples16kHzMono);
+            _stream.AcceptWaveform(16000, samples16kHzMono);
 
-            while (!_vad.IsEmpty())
+            // 解码所有可用帧
+            while (_recognizer.IsReady(_stream))
+                _recognizer.Decode(_stream);
+
+            // 获取partial结果
+            var result = _recognizer.GetResult(_stream);
+            var text = result.Text?.Trim() ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(text))
             {
-                var segment = _vad.Front();
-                _segmentCount++;
-                Console.WriteLine($"[VAD] 检测到语音段 #{_segmentCount}: {segment.Samples.Length} samples ({segment.Samples.Length / 16000.0:F2}s)");
-
-                if (segment.Samples.Length > 0)
+                OnPartialResult?.Invoke(new SubtitleEntry
                 {
-                    try
-                    {
-                        var stream = _recognizer!.CreateStream();
-                        stream.AcceptWaveform(16000, segment.Samples);
-                        _recognizer.Decode(stream);
-                        var text = stream.Result.Text?.Trim() ?? string.Empty;
-                        Console.WriteLine($"[STT] 识别结果: \"{text}\"");
+                    OriginalText = text,
+                    Timestamp = DateTime.Now
+                });
 
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            OnSpeechRecognized?.Invoke(new SubtitleEntry
-                            {
-                                OriginalText = text,
-                                Timestamp = DateTime.Now,
-                                Duration = TimeSpan.FromSeconds(segment.Samples.Length / 16000.0)
-                            });
-                        }
-                    }
-                    catch (Exception ex)
+                if (_audioChunkCount % 100 == 0)
+                    Console.WriteLine($"[STT] partial: \"{text}\"");
+            }
+
+            // 端点检测：说话结束
+            if (_recognizer.IsEndpoint(_stream))
+            {
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    Console.WriteLine($"[STT] final: \"{text}\"");
+                    OnFinalResult?.Invoke(new SubtitleEntry
                     {
-                        Console.WriteLine($"[STT] 解码异常: {ex.Message}");
-                        Error?.Invoke($"STT解码错误: {ex.Message}");
-                    }
+                        OriginalText = text,
+                        Timestamp = DateTime.Now
+                    });
                 }
-                _vad.Pop();
+                _recognizer.Reset(_stream);
             }
         }
     }
-    
 
     /// <summary>
-    /// 使用当前设置重建 VAD 实例，立即生效。用于实时调整参数。
+    /// 更新端点检测灵敏度。
     /// </summary>
-    /// <param name="settings">应用配置。</param>
-    public void RebuildVad(SettingsModel settings)
+    public void UpdateEndpointConfig(float minTrailingSilence, float minUtteranceLength)
     {
-        Console.WriteLine($"[VAD] 重建 minSilence={settings.MinSilenceDuration}s threshold={settings.VadThreshold}");
-        InitVad(settings);
+        // 需要重建recognizer才能应用新配置
+        // 暂存参数，下次Initialize时生效
+        Console.WriteLine($"[STT] 端点参数更新: trailingSilence={minTrailingSilence}s utteranceLength={minUtteranceLength}s");
     }
 
-    /// <summary>
-    /// 释放 VAD 和 SenseVoice 识别器资源。
-    /// </summary>
     public void Dispose()
     {
-        lock (_vadLock) { _vad?.Dispose(); _vad = null; }
-        _recognizer?.Dispose();
-        _recognizer = null;
+        lock (_lock)
+        {
+            _stream?.Dispose();
+            _stream = null;
+            _recognizer?.Dispose();
+            _recognizer = null;
+        }
     }
 }

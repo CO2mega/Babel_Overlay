@@ -10,7 +10,13 @@ namespace NetDesktop.Services.Translation;
 public class GoogleTranslationService : ITranslationService
 {
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(8) };
-    private const string ApiKey = "AIzaSyA6EEtrDCfBkHV8uU2lgGY-N383ZgAOo7Y";
+    private const string FallbackApiKey = "AIzaSyA6EEtrDCfBkHV8uU2lgGY-N383ZgAOo7Y";
+    private readonly string _apiKey;
+
+    public GoogleTranslationService(string? userKey = null)
+    {
+        _apiKey = string.IsNullOrWhiteSpace(userKey) ? FallbackApiKey : userKey;
+    }
 
     /// <summary>
     /// 使用 Google 字典扩展 API 翻译文本。
@@ -25,7 +31,7 @@ public class GoogleTranslationService : ITranslationService
 
         var encodedText = Uri.EscapeDataString(text);
         var url = $"https://dictionaryextension-pa.googleapis.com/v1/dictionaryExtensionData?" +
-                  $"language={targetLang}&key={ApiKey}&term={encodedText}&strategy=2";
+                  $"language={targetLang}&key={_apiKey}&term={encodedText}&strategy=2";
 
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("x-referer", "chrome-extension://mgijmajocgfcbeboacabfgobmjgjcoja");

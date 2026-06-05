@@ -1,13 +1,5 @@
 namespace NetDesktop.Models;
 
-public enum VadPreset
-{
-    Realtime,
-    Accurate,
-    Auto,
-    Custom
-}
-
 public enum TranslationEngine
 {
     Google,
@@ -20,22 +12,25 @@ public class SettingsModel
     public double Opacity { get; set; } = 0.85;
     public string SubtitleColor { get; set; } = "#FFFFFF";
     public string TranslationColor { get; set; } = "#FFD700";
+    public string BackgroundColor { get; set; } = "#CC0D0D1A";
+    public double FontSize { get; set; } = 17;
+    public string FontWeight { get; set; } = "SemiBold";
 
-    // VAD
-    public VadPreset VadMode { get; set; } = VadPreset.Auto;
-    public float MinSilenceDuration { get; set; } = 0.5f;
-    public float VadThreshold { get; set; } = 0.5f;
-    public float MinSpeechDuration { get; set; } = 0.25f;
+    // Streaming STT — Endpoint detection
+    public float EndpointMinTrailingSilence { get; set; } = 2.4f;
+    public float EndpointMinUtteranceLength { get; set; } = 0.5f;
 
     // Translation
     public TranslationEngine Engine { get; set; } = TranslationEngine.Google;
+    public string GoogleApiKey { get; set; } = string.Empty;
     public string DeepLApiKey { get; set; } = string.Empty;
-    public string DeepLServerUrl { get; set; } = "https://api-free.deepl.com"; // free tier default
+    public string DeepLServerUrl { get; set; } = "https://api-free.deepl.com";
     public string TargetLanguage { get; set; } = "zh";
     public int ContextWindowSize { get; set; } = 6;
 
-    // Model paths
-    public string SileroVadModelPath { get; set; } = "models/silero_vad.onnx";
-    public string SenseVoiceModelPath { get; set; } = "models/sense-voice/model.onnx";
-    public string SenseVoiceTokensPath { get; set; } = "models/sense-voice/tokens.txt";
+    // Model paths (streaming zipformer)
+    public string StreamingEncoderPath { get; set; } = "models/encoder.onnx";
+    public string StreamingDecoderPath { get; set; } = "models/decoder.onnx";
+    public string StreamingJoinerPath { get; set; } = "models/joiner.onnx";
+    public string StreamingTokensPath { get; set; } = "models/tokens.txt";
 }
