@@ -6,10 +6,11 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
     setMinimumSize(420, 320);
-    resize(500, 420);
+    resize(520, 460);
     setWindowTitle(tr("settings"));
 
     setupUi();
+    buildContent();
 }
 
 SettingsDialog::~SettingsDialog()
@@ -21,14 +22,30 @@ QScrollArea *SettingsDialog::contentArea() const
     return m_contentArea;
 }
 
+SettingsGroup *SettingsDialog::addGroup(const QString &title)
+{
+    SettingsGroup *group = new SettingsGroup(title, this);
+    m_contentLayout->addWidget(group);
+    return group;
+}
+
+void SettingsDialog::addItemToGroup(SettingsGroup *group, SettingsItemWidget *item)
+{
+    group->card()->addItem(item);
+    m_allItems.append(item);
+}
+
 void SettingsDialog::onApply()
 {
-    // TODO: implement apply logic
+    for (auto *item : m_allItems) {
+        item->apply();
+    }
 }
 
 void SettingsDialog::onOk()
 {
-    // TODO: implement ok logic
+    onApply();
+    accept();
 }
 
 void SettingsDialog::onCancel()
@@ -61,9 +78,13 @@ void SettingsDialog::setupUi()
         "}"
     );
 
-    QWidget *scrollContent = new QWidget();
-    scrollContent->setStyleSheet("background: transparent;");
-    m_contentArea->setWidget(scrollContent);
+    m_scrollContent = new QWidget();
+    m_scrollContent->setStyleSheet("background: transparent;");
+    m_contentLayout = new QVBoxLayout(m_scrollContent);
+    m_contentLayout->setContentsMargins(0, 0, 0, 0);
+    m_contentLayout->setSpacing(18);
+    m_contentLayout->addStretch();
+    m_contentArea->setWidget(m_scrollContent);
 
     mainLayout->addWidget(m_contentArea);
 
@@ -103,4 +124,10 @@ void SettingsDialog::setupUi()
     btnLayout->addWidget(m_cancelBtn);
 
     mainLayout->addLayout(btnLayout);
+}
+
+void SettingsDialog::buildContent()
+{
+    setStyleSheet("QDialog { background: #f3f3f3; }");
+    SettingsContentBuilder::build(this);
 }
