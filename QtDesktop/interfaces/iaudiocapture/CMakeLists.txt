@@ -3,6 +3,12 @@ if(NOT WIN32)
     return()
 endif()
 
+find_package(wil CONFIG QUIET)
+if(NOT wil_FOUND)
+    message(WARNING "WIL package not found. Audio capture interface will be disabled.")
+    return()
+endif()
+
 # ===== Audio Capture Shared Library (DLL) =====
 add_library(audio_capture SHARED
     audio_capture_dll.cpp
