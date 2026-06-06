@@ -4,7 +4,7 @@
         Title="字幕翻译"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="True"
-        Left="200" Top="800" Height="120" Width="520"
+        Left="200" Top="800" Height="240" Width="520"
         MinWidth="260" MinHeight="60"
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded" Closing="Window_Closing">
@@ -271,14 +271,24 @@
                     </Grid>
 
                     <!-- Original text -->
-                    <TextBlock x:Name="OriginalText" Grid.Row="1"
-                               Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,4,0,2"/>
+                    <ScrollViewer x:Name="OriginalScroller" Grid.Row="1"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,4,0,2">
+                        <TextBlock x:Name="OriginalText"
+                                   Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
+                                   TextWrapping="Wrap"/>
+                    </ScrollViewer>
 
                     <!-- Translated text -->
-                    <TextBlock x:Name="TranslatedText" Grid.Row="2"
-                               Foreground="#FFD700" FontSize="14"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,2,0,0"/>
+                    <ScrollViewer x:Name="TranslationScroller" Grid.Row="2"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,2,0,0">
+                        <TextBlock x:Name="TranslatedText"
+                                   Foreground="#FFD700" FontSize="14"
+                                   TextWrapping="Wrap"/>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- PAGE 2: History -->
