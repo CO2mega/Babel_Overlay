@@ -50,12 +50,15 @@ public class SubtitleManager
     }
 
     /// <summary>
-    /// 最终识别结果（端点检测后）。将当前条目推入历史，设置新条目为当前。
+    /// 最终识别结果。将当前条目更新为 final 文本后推入历史，设置新条目为当前。
     /// </summary>
     public void OnFinalRecognition(SubtitleEntry entry)
     {
-        if (Current != null)
+        if (Current != null && !Current.IsConfirmed)
         {
+            // 用 final 的完整文本更新当前条目后再推入历史
+            Current.OriginalText = entry.OriginalText;
+            Current.Timestamp = entry.Timestamp;
             Current.IsConfirmed = true;
             AddToHistory(Current);
         }

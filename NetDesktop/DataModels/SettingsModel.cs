@@ -20,6 +20,9 @@ public class SettingsModel
     // Live Captions
     public int LiveCaptionsPollingIntervalMs { get; set; } = 30;
 
+    // Translation polling
+    public int TranslationPollingIntervalMs { get; set; } = 800;
+
     // Translation
     public TranslationEngine Engine { get; set; } = TranslationEngine.Google;
     public string GoogleApiKey { get; set; } = string.Empty;

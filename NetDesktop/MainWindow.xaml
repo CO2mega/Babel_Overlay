@@ -271,14 +271,22 @@
                     </Grid>
 
                     <!-- Original text -->
-                    <TextBlock x:Name="OriginalText" Grid.Row="1"
-                               Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,4,0,2"/>
+                    <ScrollViewer x:Name="OriginalScroll" Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,4,0,2">
+                        <TextBlock x:Name="OriginalText"
+                                   Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
+                                   TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                    </ScrollViewer>
 
                     <!-- Translated text -->
-                    <TextBlock x:Name="TranslatedText" Grid.Row="2"
-                               Foreground="#FFD700" FontSize="14"
-                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,2,0,0"/>
+                    <ScrollViewer x:Name="TranslatedScroll" Grid.Row="2"
+                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,2,0,0">
+                        <TextBlock x:Name="TranslatedText"
+                                   Foreground="#FFD700" FontSize="14"
+                                   TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- PAGE 2: History -->
@@ -356,6 +364,12 @@
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled" Margin="16,0">
                         <StackPanel Margin="0,0,8,8">
+
+                            <!-- LIVE CAPTIONS SECTION -->
+                            <TextBlock Text="Live Captions" Style="{StaticResource SectionHeader}"/>
+                            <Button Content="打开 Live Captions 设置（语言/麦克风）"
+                                    Style="{StaticResource ActionButton}" Margin="0,0,0,10"
+                                    Click="LiveCaptionsSettings_Click"/>
 
                             <!-- TRANSLATION SECTION -->
                             <TextBlock Text="翻译" Style="{StaticResource SectionHeader}"/>

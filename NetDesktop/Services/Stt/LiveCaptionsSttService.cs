@@ -31,6 +31,7 @@ public class LiveCaptionsSttService : IDisposable
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int SW_MINIMIZE = 6;
+    private const int SW_RESTORE = 9;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -46,6 +47,9 @@ public class LiveCaptionsSttService : IDisposable
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
@@ -287,6 +291,37 @@ public class LiveCaptionsSttService : IDisposable
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// 恢复 Live Captions 窗口并点击其设置按钮，让用户调整语言/麦克风。
+    /// </summary>
+    public void ShowSettings()
+    {
+        if (_window == null) return;
+
+        try
+        {
+            var hWnd = new IntPtr((long)_window.Current.NativeWindowHandle);
+
+            // 恢复窗口显示
+            int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+            SetWindowLong(hWnd, GWL_EXSTYLE, exStyle & ~WS_EX_TOOLWINDOW);
+            ShowWindow(hWnd, SW_RESTORE);
+            SetForegroundWindow(hWnd);
+
+            // 点击设置按钮
+            var settingsBtn = FindElementByAutomationId(_window, "SettingsButton");
+            if (settingsBtn != null)
+            {
+                var invokePattern = settingsBtn.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                invokePattern?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LiveCaptions] 打开设置失败: {ex.Message}");
         }
     }
 
