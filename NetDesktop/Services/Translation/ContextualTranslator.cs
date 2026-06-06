@@ -68,18 +68,7 @@ public class ContextualTranslator
         await _translateLock.WaitAsync(ct);
         try
         {
-            string translation = sentence;
-            for (int attempt = 0; attempt <= _maxRetry; attempt++)
-            {
-                translation = await _engine.TranslateAsync(sentence, _targetLang, ct);
-                if (!translation.StartsWith("[翻译"))
-                {
-                    OnTranslationReady?.Invoke(sentence, translation);
-                    return;
-                }
-                if (attempt < _maxRetry)
-                    await Task.Delay(_retryDelayMs, ct);
-            }
+            string translation = await TranslateWithRetry(sentence, ct);
             OnTranslationReady?.Invoke(sentence, translation);
         }
         catch (OperationCanceledException) { }
@@ -116,18 +105,7 @@ public class ContextualTranslator
         await _translateLock.WaitAsync(ct);
         try
         {
-            string translation = sentence;
-            for (int attempt = 0; attempt <= _maxRetry; attempt++)
-            {
-                translation = await _engine.TranslateAsync(sentence, _targetLang, ct);
-                if (!translation.StartsWith("[翻译"))
-                {
-                    OnTranslationReady?.Invoke(sentence, translation);
-                    return;
-                }
-                if (attempt < _maxRetry)
-                    await Task.Delay(_retryDelayMs, ct);
-            }
+            string translation = await TranslateWithRetry(sentence, ct);
             OnTranslationReady?.Invoke(sentence, translation);
         }
         catch (OperationCanceledException) { }
@@ -139,6 +117,33 @@ public class ContextualTranslator
         {
             _translateLock.Release();
         }
+    }
+
+    private async Task<string> TranslateWithRetry(string text, CancellationToken ct)
+    {
+        string lastResult = text;
+        for (int attempt = 0; attempt <= _maxRetry; attempt++)
+        {
+            lastResult = await _engine.TranslateAsync(text, _targetLang, ct);
+
+            // 成功
+            if (!lastResult.StartsWith("[翻译"))
+                return lastResult;
+
+            // 不可重试的错误：直接返回
+            if (lastResult.StartsWith("[翻译失败:") || lastResult.StartsWith("[翻译错误:"))
+                return lastResult;
+
+            // 可重试：429/5xx → 指数退避；超时 → 固定延迟
+            if (attempt < _maxRetry)
+            {
+                if (lastResult.StartsWith("[翻译重试:"))
+                    await Task.Delay(_retryDelayMs * (int)Math.Pow(2, attempt), ct);
+                else
+                    await Task.Delay(_retryDelayMs, ct);
+            }
+        }
+        return lastResult;
     }
 
 }

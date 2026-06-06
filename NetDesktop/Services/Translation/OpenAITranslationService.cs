@@ -49,7 +49,12 @@ public class OpenAITranslationService : ITranslationService
         {
             var response = await _client.PostAsync(_endpointUrl, content, linkedCts.Token);
             if (!response.IsSuccessStatusCode)
+            {
+                int code = (int)response.StatusCode;
+                if (code == 429 || code >= 500)
+                    return $"[翻译重试: {response.StatusCode}]";
                 return $"[翻译失败: {response.StatusCode}]";
+            }
 
             var responseBody = await response.Content.ReadAsStringAsync(linkedCts.Token);
             using var doc = JsonDocument.Parse(responseBody);

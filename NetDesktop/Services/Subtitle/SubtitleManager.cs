@@ -29,6 +29,7 @@ public class SubtitleManager
     public event Action<SubtitleEntry>? HistoryChanged;
 
     private const int MaxHistory = 100;
+    private const double SimilarityThreshold = 0.6;
     private DateTime _lastUpdateTime = DateTime.MinValue;
 
     /// <summary>
@@ -125,6 +126,74 @@ public class SubtitleManager
         while (History.Count > MaxHistory)
             History.RemoveAt(History.Count - 1);
         HistoryChanged?.Invoke(entry);
+    }
+
+    /// <summary>
+    /// 检查新文本是否与最后翻译过的文本过于相似（Live Captions 修正），若是则复用上次译文。
+    /// 返回 true 表示应跳过翻译请求。
+    /// </summary>
+    public bool TryReuseLastTranslation(string newText, out string reusedTranslation)
+    {
+        reusedTranslation = string.Empty;
+
+        // 找最近一条有译文的历史条目
+        SubtitleEntry? lastTranslated = null;
+        foreach (var entry in History)
+        {
+            if (!string.IsNullOrEmpty(entry.TranslatedText) && !entry.TranslatedText.StartsWith("[翻译"))
+            {
+                lastTranslated = entry;
+                break;
+            }
+        }
+
+        if (lastTranslated == null) return false;
+
+        if (Similarity(lastTranslated.OriginalText, newText) > SimilarityThreshold)
+        {
+            reusedTranslation = lastTranslated.TranslatedText;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Levenshtein 距离相似度（与参考项目 TextUtil.Similarity 一致）。
+    /// </summary>
+    private static double Similarity(string text1, string text2)
+    {
+        if (text1.StartsWith(text2) || text2.StartsWith(text1))
+            return 1.0;
+        int distance = LevenshteinDistance(text1, text2);
+        int maxLen = Math.Max(text1.Length, text2.Length);
+        return maxLen == 0 ? 1.0 : 1.0 - (double)distance / maxLen;
+    }
+
+    private static int LevenshteinDistance(string text1, string text2)
+    {
+        if (string.IsNullOrEmpty(text1)) return string.IsNullOrEmpty(text2) ? 0 : text2.Length;
+        if (string.IsNullOrEmpty(text2)) return text1.Length;
+
+        if (text1.Length > text2.Length)
+            (text2, text1) = (text1, text2);
+
+        int len1 = text1.Length;
+        int len2 = text2.Length;
+        int[] prev = new int[len1 + 1];
+        int[] curr = new int[len1 + 1];
+
+        for (int i = 0; i <= len1; i++) prev[i] = i;
+        for (int j = 1; j <= len2; j++)
+        {
+            curr[0] = j;
+            for (int i = 1; i <= len1; i++)
+            {
+                int cost = text1[i - 1] == text2[j - 1] ? 0 : 1;
+                curr[i] = Math.Min(Math.Min(curr[i - 1] + 1, prev[i] + 1), prev[i - 1] + cost);
+            }
+            (curr, prev) = (prev, curr);
+        }
+        return prev[len1];
     }
 
     /// <summary>
