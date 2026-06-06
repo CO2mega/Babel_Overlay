@@ -3,6 +3,7 @@ namespace NetDesktop.Models;
 public enum TranslationEngine
 {
     Google,
+    Google2,
     DeepL
 }
 

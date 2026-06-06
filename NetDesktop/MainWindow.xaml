@@ -364,6 +364,7 @@
                             <ComboBox x:Name="CbEngine" Style="{StaticResource ComboStyle}" Margin="0,0,0,10"
                                       SelectionChanged="CbEngine_SelectionChanged">
                                 <ComboBoxItem>Google</ComboBoxItem>
+                                <ComboBoxItem>Google2（免费）</ComboBoxItem>
                                 <ComboBoxItem>DeepL</ComboBoxItem>
                             </ComboBox>
 

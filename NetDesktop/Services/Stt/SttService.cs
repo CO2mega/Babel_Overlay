@@ -14,6 +14,8 @@ public class SttService : IDisposable
     private OnlineStream? _stream;
     private readonly object _lock = new();
     private int _audioChunkCount;
+    private float[] _audioBuffer = Array.Empty<float>();
+    private const int BufferThreshold = 3200; // 200ms @ 16kHz
 
     private readonly string _encoderPath;
     private readonly string _decoderPath;
@@ -89,7 +91,7 @@ public class SttService : IDisposable
                     Joiner = _joinerPath
                 },
                 Tokens = _tokensPath,
-                NumThreads = 4,
+                NumThreads = 2,
                 Provider = "cpu"
             },
             DecodingMethod = "greedy_search",
@@ -115,6 +117,7 @@ public class SttService : IDisposable
     /// </summary>
     public void ProcessAudio(float[] samples16kHzMono)
     {
+        // 缓冲累积，达到阈值后再送入识别器，降低解码频率
         lock (_lock)
         {
             if (_recognizer == null || _stream == null)
@@ -125,11 +128,23 @@ public class SttService : IDisposable
                 return;
             }
 
+            // 追加到缓冲区
+            var combined = new float[_audioBuffer.Length + samples16kHzMono.Length];
+            Buffer.BlockCopy(_audioBuffer, 0, combined, 0, _audioBuffer.Length * 4);
+            Buffer.BlockCopy(samples16kHzMono, 0, combined, _audioBuffer.Length * 4, samples16kHzMono.Length * 4);
+            _audioBuffer = combined;
+
+            if (_audioBuffer.Length < BufferThreshold)
+                return;
+
+            var toProcess = _audioBuffer;
+            _audioBuffer = Array.Empty<float>();
+
             _audioChunkCount++;
             if (_audioChunkCount <= 3 || _audioChunkCount % 200 == 0)
-                Console.WriteLine($"[STT] 送入音频 #{_audioChunkCount}: {samples16kHzMono.Length} samples");
+                Console.WriteLine($"[STT] 送入音频 #{_audioChunkCount}: {toProcess.Length} samples");
 
-            _stream.AcceptWaveform(16000, samples16kHzMono);
+            _stream.AcceptWaveform(16000, toProcess);
 
             // 解码所有可用帧
             while (_recognizer.IsReady(_stream))

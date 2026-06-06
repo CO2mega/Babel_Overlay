@@ -56,6 +56,7 @@ public class SubtitlePipeline : IDisposable
             ITranslationService engine = _settings.Engine switch
             {
                 TranslationEngine.DeepL => new DeepLTranslationService(_settings.DeepLApiKey, _settings.DeepLServerUrl),
+                TranslationEngine.Google2 => new Google2TranslationService(),
                 _ => new GoogleTranslationService(_settings.GoogleApiKey)
             };
 
@@ -112,6 +113,7 @@ public class SubtitlePipeline : IDisposable
             TranslationEngine.DeepL => new DeepLTranslationService(
                 apiKey ?? _settings.DeepLApiKey,
                 serverUrl ?? _settings.DeepLServerUrl),
+            TranslationEngine.Google2 => new Google2TranslationService(),
             _ => new GoogleTranslationService(googleApiKey ?? _settings.GoogleApiKey)
         };
         _translator?.SwitchEngine(newEngine);
