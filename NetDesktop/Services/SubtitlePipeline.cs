@@ -72,6 +72,14 @@ public class SubtitlePipeline : IDisposable
             _stt.OnFinalResult += entry =>
             {
                 Manager.OnFinalRecognition(entry);
+
+                // 复用相似文本的译文（Live Captions 修正场景）
+                if (Manager.TryReuseLastTranslation(entry.OriginalText, out var reused))
+                {
+                    Manager.UpdateTranslation(entry.OriginalText, reused);
+                    return;
+                }
+
                 Manager.MarkTranslationTarget(entry);
                 _ = _translator.TranslateNewSentence(entry.OriginalText);
             };

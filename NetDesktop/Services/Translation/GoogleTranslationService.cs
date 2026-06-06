@@ -34,7 +34,12 @@ public class GoogleTranslationService : ITranslationService
         {
             var response = await _client.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
+            {
+                int code = (int)response.StatusCode;
+                if (code == 429 || code >= 500)
+                    return $"[翻译重试: {response.StatusCode}]";
                 return $"[翻译失败: {response.StatusCode}]";
+            }
 
             var body = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(body);
