@@ -208,7 +208,7 @@
         </Style>
     </Window.Resources>
 
-    <Border x:Name="RootBorder" CornerRadius="10" Background="#CC0D0D1A"
+    <Border x:Name="RootBorder" CornerRadius="10" Background="#0D0D1A"
             BorderBrush="#33FFFFFF" BorderThickness="1"
             MouseLeftButtonDown="Border_MouseLeftButtonDown">
         <Grid>
@@ -457,7 +457,7 @@
                                            VerticalAlignment="Center"/>
                             </Grid>
 
-                            <TextBlock Text="背景颜色（十六进制，含透明度 #AARRGGBB）" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="背景颜色（十六进制）" Style="{StaticResource FieldLabel}"/>
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -469,37 +469,6 @@
                                 <Rectangle x:Name="RectBackgroundColor" Grid.Column="1"
                                            Width="22" Height="22" RadiusX="3" RadiusY="3"
                                            VerticalAlignment="Center"/>
-                            </Grid>
-
-                            <!-- ENDPOINT SECTION -->
-                            <TextBlock Text="端点检测" Style="{StaticResource SectionHeader}"/>
-
-                            <TextBlock Text="静音结束阈值（秒）" Style="{StaticResource FieldLabel}"/>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="36"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider x:Name="SlTrailingSilence" Grid.Column="0" Minimum="0.5" Maximum="5.0"
-                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblTrailingSilence" Grid.Column="1"
-                                           Foreground="#AAAAAA" FontSize="11"
-                                           VerticalAlignment="Center" Margin="4,0,0,0"/>
-                            </Grid>
-
-                            <TextBlock Text="最短语音长度（秒）" Style="{StaticResource FieldLabel}"/>
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="36"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider x:Name="SlUtteranceLength" Grid.Column="0" Minimum="0.1" Maximum="5.0"
-                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblUtteranceLength" Grid.Column="1"
-                                           Foreground="#AAAAAA" FontSize="11"
-                                           VerticalAlignment="Center" Margin="4,0,0,0"/>
                             </Grid>
 
                         </StackPanel>

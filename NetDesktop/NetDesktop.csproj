@@ -9,20 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NAudio" Version="2.2.1" />
-        <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.2" />
-        <PackageReference Include="org.k2fsa.sherpa.onnx.runtime.win-x64" Version="1.13.2" />
         <PackageReference Include="DeepL.net" Version="1.21.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="models\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="model\" />
     </ItemGroup>
 
 </Project>

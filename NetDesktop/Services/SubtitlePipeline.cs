@@ -1,5 +1,4 @@
 using NetDesktop.Models;
-using NetDesktop.Services.Audio;
 using NetDesktop.Services.Stt;
 using NetDesktop.Services.Translation;
 using NetDesktop.Services.Subtitle;
@@ -7,13 +6,11 @@ using NetDesktop.Services.Subtitle;
 namespace NetDesktop.Services;
 
 /// <summary>
-/// 全流程管线：WASAPI音频捕获，重采样，流式STT，标点恢复，滑动窗口翻译，字幕管理器。
+/// 全流程管线：Windows Live Captions 语音识别，滑动窗口翻译，字幕管理器。
 /// </summary>
 public class SubtitlePipeline : IDisposable
 {
-    private AudioCaptureService? _capture;
-    private AudioResampler? _resampler;
-    private SttService? _stt;
+    private LiveCaptionsSttService? _stt;
     private ContextualTranslator? _translator;
     private readonly SettingsModel _settings;
     private readonly object _lock = new();
@@ -23,11 +20,6 @@ public class SubtitlePipeline : IDisposable
     /// 字幕管理器，构造时即创建，供调用方在 Start() 前订阅事件。
     /// </summary>
     public SubtitleManager Manager { get; } = new SubtitleManager();
-
-    /// <summary>
-    /// STT 服务实例（Start() 后可访问）。
-    /// </summary>
-    public SttService? Stt => _stt;
 
     /// <summary>
     /// 管道运行过程中的错误。
@@ -40,7 +32,7 @@ public class SubtitlePipeline : IDisposable
     }
 
     /// <summary>
-    /// 启动完整管道：标点模型 → 翻译引擎 → 流式STT → WASAPI捕获。
+    /// 启动完整管道：翻译引擎 → Live Captions STT。
     /// </summary>
     public void Start()
     {
@@ -64,8 +56,8 @@ public class SubtitlePipeline : IDisposable
             _translator.OnTranslationReady += (original, translated) =>
                 Manager.UpdateTranslation(original, translated);
 
-            // STT
-            _stt = new SttService(_settings);
+            // Live Captions STT
+            _stt = new LiveCaptionsSttService(_settings);
 
             // partial → 更新原文 + 节流翻译
             _stt.OnPartialResult += entry =>
@@ -82,19 +74,7 @@ public class SubtitlePipeline : IDisposable
             };
 
             _stt.Error += msg => Error?.Invoke(msg);
-            _stt.Initialize(_settings);
-
-            _resampler = new AudioResampler();
-
-            _capture = new AudioCaptureService();
-            _capture.AudioDataAvailable += (samples, channels) =>
-            {
-                var fmt = _capture.CaptureFormat;
-                var resampled = _resampler.Resample(samples, channels, fmt.SampleRate);
-                _stt?.ProcessAudio(resampled);
-            };
-            _capture.Error += msg => Error?.Invoke(msg);
-            _capture.Start();
+            _stt.Initialize();
         }
         catch (Exception ex)
         {
@@ -130,14 +110,13 @@ public class SubtitlePipeline : IDisposable
             if (!_running) return;
             _running = false;
         }
-        _capture?.Stop();
+        _stt?.Dispose();
         Manager.Clear();
     }
 
     public void Dispose()
     {
         Stop();
-        _capture?.Dispose();
         _stt?.Dispose();
     }
 }
