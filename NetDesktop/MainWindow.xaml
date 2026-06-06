@@ -257,7 +257,8 @@
                 <Grid x:Name="PageOverlay" Visibility="Visible" Margin="14,10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -270,22 +271,50 @@
                                 ToolTip="展开导航" Click="ExpandNav_Click"/>
                     </Grid>
 
-                    <!-- Original text -->
-                    <ScrollViewer x:Name="OriginalScroll" Grid.Row="1"
-                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                                  HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,4,0,2">
+                    <!-- Original text: 超长时左侧裁剪，右侧始终显示最新，无滚动条 -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Hidden"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  FlowDirection="RightToLeft"
+                                  VerticalAlignment="Center" Margin="0,4,0,2">
                         <TextBlock x:Name="OriginalText"
                                    Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
-                                   TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                   TextWrapping="NoWrap" FlowDirection="LeftToRight"/>
                     </ScrollViewer>
 
                     <!-- Translated text -->
-                    <ScrollViewer x:Name="TranslatedScroll" Grid.Row="2"
-                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                                  HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,2,0,0">
+                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Hidden"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  FlowDirection="RightToLeft"
+                                  VerticalAlignment="Center" Margin="0,2,0,0">
                         <TextBlock x:Name="TranslatedText"
                                    Foreground="#FFD700" FontSize="14"
-                                   TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                   TextWrapping="NoWrap" FlowDirection="LeftToRight"/>
+                    </ScrollViewer>
+
+                    <!-- History cards: 可滚动的历史翻译列表 -->
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled" Margin="0,4,0,0">
+                        <ItemsControl x:Name="HistoryCards" ItemsSource="{Binding History}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,4" Padding="6,4" CornerRadius="4"
+                                            Background="#18FFFFFF">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="{Binding OriginalText}"
+                                                       Foreground="#CCCCCC" FontSize="12"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="1" Text="{Binding TranslatedText}"
+                                                       Foreground="#FFD700" FontSize="12"
+                                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </ScrollViewer>
                 </Grid>
 
@@ -380,6 +409,7 @@
                                 <ComboBoxItem>Google</ComboBoxItem>
                                 <ComboBoxItem>Google2（免费）</ComboBoxItem>
                                 <ComboBoxItem>DeepL</ComboBoxItem>
+                                <ComboBoxItem>OpenAI 兼容</ComboBoxItem>
                             </ComboBox>
 
                             <!-- Google fields -->
@@ -400,8 +430,46 @@
                                          Margin="0,0,0,10"/>
                             </StackPanel>
 
+                            <!-- OpenAI fields -->
+                            <StackPanel x:Name="OpenAIPanel" Visibility="Collapsed">
+                                <TextBlock Text="API 地址" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIUrl" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+
+                                <TextBlock Text="API Key" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIKey" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+
+                                <TextBlock Text="模型名称" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIModel" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+                            </StackPanel>
+
                             <TextBlock Text="目标语言（如 zh / ja / ko）" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="TbTargetLang" Style="{StaticResource InputBox}"
+                                     Margin="0,0,0,10"/>
+
+                            <!-- ADVANCED TRANSLATION SETTINGS -->
+                            <TextBlock Text="高级翻译设置" Style="{StaticResource SectionHeader}"/>
+
+                            <TextBlock Text="请求超时（秒）" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TbTimeoutSeconds" Style="{StaticResource InputBox}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="失败重试次数" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TbMaxRetry" Style="{StaticResource InputBox}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="重试间隔（毫秒）" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TbRetryDelayMs" Style="{StaticResource InputBox}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="节流延迟（毫秒）" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TbThrottleDelayMs" Style="{StaticResource InputBox}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Text="上下文窗口大小" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TbContextWindowSize" Style="{StaticResource InputBox}"
                                      Margin="0,0,0,10"/>
 
                             <!-- APPEARANCE SECTION -->

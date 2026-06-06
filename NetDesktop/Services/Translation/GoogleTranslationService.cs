@@ -9,13 +9,14 @@ namespace NetDesktop.Services.Translation;
 /// </summary>
 public class GoogleTranslationService : ITranslationService
 {
-    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(8) };
     private const string FallbackApiKey = "AIzaSyA6EEtrDCfBkHV8uU2lgGY-N383ZgAOo7Y";
+    private readonly HttpClient _client;
     private readonly string _apiKey;
 
-    public GoogleTranslationService(string? userKey = null)
+    public GoogleTranslationService(string? userKey = null, int timeoutSeconds = 10)
     {
         _apiKey = string.IsNullOrWhiteSpace(userKey) ? FallbackApiKey : userKey;
+        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
     }
 
     /// <summary>
@@ -38,7 +39,7 @@ public class GoogleTranslationService : ITranslationService
 
         try
         {
-            var response = await Client.SendAsync(request, ct);
+            var response = await _client.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
                 return $"[翻译失败: {response.StatusCode}]";
 

@@ -49,11 +49,13 @@ public class SubtitlePipeline : IDisposable
             ITranslationService engine = _settings.Engine switch
             {
                 TranslationEngine.DeepL => new DeepLTranslationService(_settings.DeepLApiKey, _settings.DeepLServerUrl),
-                TranslationEngine.Google2 => new Google2TranslationService(),
-                _ => new GoogleTranslationService(_settings.GoogleApiKey)
+                TranslationEngine.Google2 => new Google2TranslationService(_settings.TranslationTimeoutSeconds),
+                TranslationEngine.OpenAI => new OpenAITranslationService(_settings.OpenAIApiKey, _settings.OpenAIApiUrl, _settings.OpenAIModel, _settings.TranslationTimeoutSeconds),
+                _ => new GoogleTranslationService(_settings.GoogleApiKey, _settings.TranslationTimeoutSeconds)
             };
 
-            _translator = new ContextualTranslator(engine, _settings.TargetLanguage, _settings.ContextWindowSize);
+            _translator = new ContextualTranslator(engine, _settings.TargetLanguage, _settings.ContextWindowSize,
+                _settings.ThrottleDelayMs, _settings.MaxRetryCount, _settings.RetryDelayMs);
             _translator.OnTranslationReady += (original, translated) =>
                 Manager.UpdateTranslation(original, translated);
 
@@ -70,6 +72,7 @@ public class SubtitlePipeline : IDisposable
             _stt.OnFinalResult += entry =>
             {
                 Manager.OnFinalRecognition(entry);
+                Manager.MarkTranslationTarget(entry);
                 _ = _translator.TranslateNewSentence(entry.OriginalText);
             };
 
@@ -93,10 +96,12 @@ public class SubtitlePipeline : IDisposable
 
     /// <summary>
     /// 定时轮询：每 N ms 检查当前字幕是否有未翻译的内容，有则请求翻译。
+    /// 只翻译最新的一句，旧的请求会被取消（与参考项目 TranslationTaskQueue 逻辑一致）。
     /// </summary>
     private void TranslationPollLoop()
     {
         string lastTranslatedText = string.Empty;
+        string lastRequestedText = string.Empty;
         var interval = _settings.TranslationPollingIntervalMs;
 
         while (_running)
@@ -109,19 +114,27 @@ public class SubtitlePipeline : IDisposable
                 if (current == null || string.IsNullOrWhiteSpace(current.OriginalText))
                     continue;
 
-                // 已翻译过相同的文本则跳过
-                if (string.CompareOrdinal(lastTranslatedText, current.OriginalText) == 0)
+                var text = current.OriginalText;
+
+                // 已翻译过相同文本 → 跳过
+                if (string.CompareOrdinal(lastTranslatedText, text) == 0)
                     continue;
 
-                // 如果已有翻译（由 final 事件驱动的翻译完成），跳过轮询
+                // 已有翻译结果（由 final 事件驱动）→ 更新已翻译标记，跳过轮询
                 if (!string.IsNullOrEmpty(current.TranslatedText))
                 {
-                    lastTranslatedText = current.OriginalText;
+                    lastTranslatedText = text;
+                    lastRequestedText = string.Empty;
                     continue;
                 }
 
-                lastTranslatedText = current.OriginalText;
-                _ = _translator?.TranslateThrottled(current.OriginalText);
+                // 只请求最新文本的翻译，取消之前的请求
+                if (string.CompareOrdinal(lastRequestedText, text) != 0)
+                {
+                    lastRequestedText = text;
+                    Manager.MarkTranslationTarget(current);
+                    _ = _translator?.TranslateThrottled(text);
+                }
             }
             catch (Exception ex)
             {
@@ -140,13 +153,26 @@ public class SubtitlePipeline : IDisposable
             TranslationEngine.DeepL => new DeepLTranslationService(
                 apiKey ?? _settings.DeepLApiKey,
                 serverUrl ?? _settings.DeepLServerUrl),
-            TranslationEngine.Google2 => new Google2TranslationService(),
-            _ => new GoogleTranslationService(googleApiKey ?? _settings.GoogleApiKey)
+            TranslationEngine.Google2 => new Google2TranslationService(_settings.TranslationTimeoutSeconds),
+            TranslationEngine.OpenAI => new OpenAITranslationService(
+                apiKey ?? _settings.OpenAIApiKey,
+                serverUrl ?? _settings.OpenAIApiUrl,
+                _settings.OpenAIModel,
+                _settings.TranslationTimeoutSeconds),
+            _ => new GoogleTranslationService(googleApiKey ?? _settings.GoogleApiKey, _settings.TranslationTimeoutSeconds)
         };
         _translator?.SwitchEngine(newEngine);
         _settings.Engine = engine;
-        if (apiKey != null) _settings.DeepLApiKey = apiKey;
-        if (serverUrl != null) _settings.DeepLServerUrl = serverUrl;
+        if (apiKey != null)
+        {
+            if (engine == TranslationEngine.DeepL) _settings.DeepLApiKey = apiKey;
+            else if (engine == TranslationEngine.OpenAI) _settings.OpenAIApiKey = apiKey;
+        }
+        if (serverUrl != null)
+        {
+            if (engine == TranslationEngine.DeepL) _settings.DeepLServerUrl = serverUrl;
+            else if (engine == TranslationEngine.OpenAI) _settings.OpenAIApiUrl = serverUrl;
+        }
         if (googleApiKey != null) _settings.GoogleApiKey = googleApiKey;
     }
 

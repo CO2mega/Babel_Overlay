@@ -9,7 +9,12 @@ namespace NetDesktop.Services.Translation;
 /// </summary>
 public class Google2TranslationService : ITranslationService
 {
-    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private readonly HttpClient _client;
+
+    public Google2TranslationService(int timeoutSeconds = 10)
+    {
+        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
+    }
 
     public async Task<string> TranslateAsync(string text, string targetLang, CancellationToken ct = default)
     {
@@ -23,7 +28,7 @@ public class Google2TranslationService : ITranslationService
 
         try
         {
-            var response = await Client.GetAsync(url, ct);
+            var response = await _client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode)
                 return $"[翻译失败: {response.StatusCode}]";
 

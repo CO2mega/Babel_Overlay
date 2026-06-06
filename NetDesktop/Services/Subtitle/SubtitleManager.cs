@@ -75,17 +75,38 @@ public class SubtitleManager
         OnFinalRecognition(entry);
     }
 
+    // 最近一次请求翻译的条目（用于对象引用匹配）
+    private SubtitleEntry? _lastTranslationTarget;
+
     /// <summary>
-    /// 翻译完成后回写译文。优先匹配当前字幕，其次在历史中查找。
+    /// 标记当前条目为翻译目标（在请求翻译前调用）。
     /// </summary>
-    /// <param name="originalText">原文（用于匹配目标条目）。</param>
-    /// <param name="translatedText">翻译结果。</param>
+    public void MarkTranslationTarget(SubtitleEntry entry)
+    {
+        _lastTranslationTarget = entry;
+    }
+
+    /// <summary>
+    /// 翻译完成后回写译文。优先对象引用匹配，其次文本匹配。
+    /// </summary>
     public void UpdateTranslation(string originalText, string translatedText)
     {
+        // 优先对象引用匹配
+        if (_lastTranslationTarget != null)
+        {
+            _lastTranslationTarget.TranslatedText = translatedText;
+            if (Current == _lastTranslationTarget)
+                CurrentChanged?.Invoke(Current);
+            _lastTranslationTarget = null;
+            return;
+        }
+
+        // 回退：文本匹配
         if (Current?.OriginalText == originalText)
         {
             Current.TranslatedText = translatedText;
             CurrentChanged?.Invoke(Current);
+            return;
         }
 
         foreach (var entry in History)
