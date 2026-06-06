@@ -21,8 +21,5 @@
         </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="model\" />
-    </ItemGroup>
 
 </Project>

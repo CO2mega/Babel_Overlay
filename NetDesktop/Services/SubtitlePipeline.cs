@@ -6,9 +6,6 @@ using NetDesktop.Services.Subtitle;
 
 namespace NetDesktop.Services;
 
-/// <summary>
-/// 全流程管线：WASAPI音频捕获，重采样，流式STT，标点恢复，滑动窗口翻译，字幕管理器。
-/// </summary>
 public class SubtitlePipeline : IDisposable
 {
     private AudioCaptureService? _capture;
@@ -19,19 +16,13 @@ public class SubtitlePipeline : IDisposable
     private readonly object _lock = new();
     private bool _running;
 
-    /// <summary>
-    /// 字幕管理器，构造时即创建，供调用方在 Start() 前订阅事件。
-    /// </summary>
     public SubtitleManager Manager { get; } = new SubtitleManager();
 
-    /// <summary>
-    /// STT 服务实例（Start() 后可访问）。
-    /// </summary>
+    public RollingBuffer OriginalBuffer { get; } = new();
+    public RollingBuffer TranslationBuffer { get; } = new();
+
     public SttService? Stt => _stt;
 
-    /// <summary>
-    /// 管道运行过程中的错误。
-    /// </summary>
     public event Action<string>? Error;
 
     public SubtitlePipeline(SettingsModel settings)
@@ -39,9 +30,6 @@ public class SubtitlePipeline : IDisposable
         _settings = settings;
     }
 
-    /// <summary>
-    /// 启动完整管道：标点模型 → 翻译引擎 → 流式STT → WASAPI捕获。
-    /// </summary>
     public void Start()
     {
         lock (_lock)
@@ -52,7 +40,6 @@ public class SubtitlePipeline : IDisposable
 
         try
         {
-            // 翻译引擎
             ITranslationService engine = _settings.Engine switch
             {
                 TranslationEngine.DeepL => new DeepLTranslationService(_settings.DeepLApiKey, _settings.DeepLServerUrl),
@@ -60,26 +47,23 @@ public class SubtitlePipeline : IDisposable
                 _ => new GoogleTranslationService(_settings.GoogleApiKey)
             };
 
-            _translator = new ContextualTranslator(engine, _settings.TargetLanguage, _settings.ContextWindowSize);
+            _translator = new ContextualTranslator(engine, _settings.TargetLanguage);
             _translator.OnTranslationReady += (original, translated) =>
-                Manager.UpdateTranslation(original, translated);
+                TranslationBuffer.Replace(translated);
 
-            // STT
             _stt = new SttService(_settings);
 
-            // partial → 更新原文 + 节流翻译
             _stt.OnPartialResult += entry =>
-            {
-                Manager.OnPartialRecognition(entry);
-                _ = _translator.TranslateThrottled(entry.OriginalText);
-            };
+                OriginalBuffer.UpdatePartial(entry.OriginalText);
 
-            // final → 确认字幕 + 带上下文翻译
             _stt.OnFinalResult += entry =>
             {
+                OriginalBuffer.CommitPartial();
                 Manager.OnFinalRecognition(entry);
-                _ = _translator.TranslateNewSentence(entry.OriginalText);
             };
+
+            OriginalBuffer.ContentChanged += fullText =>
+                _ = _translator.TranslateRolling(fullText);
 
             _stt.Error += msg => Error?.Invoke(msg);
             _stt.Initialize(_settings);
@@ -103,9 +87,6 @@ public class SubtitlePipeline : IDisposable
         }
     }
 
-    /// <summary>
-    /// 运行时切换翻译引擎。
-    /// </summary>
     public void SwitchTranslationEngine(TranslationEngine engine, string? apiKey = null, string? serverUrl = null, string? googleApiKey = null)
     {
         ITranslationService newEngine = engine switch
@@ -131,6 +112,8 @@ public class SubtitlePipeline : IDisposable
             _running = false;
         }
         _capture?.Stop();
+        OriginalBuffer.Clear();
+        TranslationBuffer.Clear();
         Manager.Clear();
     }
 
