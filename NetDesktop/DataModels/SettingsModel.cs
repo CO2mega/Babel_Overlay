@@ -4,7 +4,8 @@ public enum TranslationEngine
 {
     Google,
     Google2,
-    DeepL
+    DeepL,
+    OpenAI
 }
 
 public class SettingsModel
@@ -26,6 +27,9 @@ public class SettingsModel
     public string GoogleApiKey { get; set; } = string.Empty;
     public string DeepLApiKey { get; set; } = string.Empty;
     public string DeepLServerUrl { get; set; } = "https://api-free.deepl.com";
+    public string OpenAIApiUrl { get; set; } = "https://api.openai.com";
+    public string OpenAIApiKey { get; set; } = string.Empty;
+    public string OpenAIModel { get; set; } = "gpt-4o-mini";
     public string TargetLanguage { get; set; } = "zh";
     public int ContextWindowSize { get; set; } = 6;
 

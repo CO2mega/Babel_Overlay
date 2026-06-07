@@ -376,6 +376,7 @@
                                 <ComboBoxItem>Google</ComboBoxItem>
                                 <ComboBoxItem>Google2（免费）</ComboBoxItem>
                                 <ComboBoxItem>DeepL</ComboBoxItem>
+                                <ComboBoxItem>OpenAI 兼容</ComboBoxItem>
                             </ComboBox>
 
                             <!-- Google fields -->
@@ -393,6 +394,21 @@
 
                                 <TextBlock Text="DeepL 服务器地址" Style="{StaticResource FieldLabel}"/>
                                 <TextBox x:Name="TbDeepLUrl" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+                            </StackPanel>
+
+                            <!-- OpenAI fields -->
+                            <StackPanel x:Name="OpenAIPanel" Visibility="Collapsed">
+                                <TextBlock Text="API 地址" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIUrl" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+
+                                <TextBlock Text="API Key" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIKey" Style="{StaticResource InputBox}"
+                                         Margin="0,0,0,10"/>
+
+                                <TextBlock Text="模型名称" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TbOpenAIModel" Style="{StaticResource InputBox}"
                                          Margin="0,0,0,10"/>
                             </StackPanel>
 

@@ -44,12 +44,16 @@ public class SubtitlePipeline : IDisposable
             {
                 TranslationEngine.DeepL => new DeepLTranslationService(_settings.DeepLApiKey, _settings.DeepLServerUrl),
                 TranslationEngine.Google2 => new Google2TranslationService(),
+                TranslationEngine.OpenAI => new OpenAITranslationService(_settings.OpenAIApiKey, _settings.OpenAIApiUrl, _settings.OpenAIModel),
                 _ => new GoogleTranslationService(_settings.GoogleApiKey)
             };
 
             _translator = new ContextualTranslator(engine, _settings.TargetLanguage);
             _translator.OnTranslationReady += (original, translated) =>
+            {
                 TranslationBuffer.Replace(translated);
+                Manager.UpdateTranslation(original, translated);
+            };
 
             _stt = new SttService(_settings);
 
@@ -95,6 +99,10 @@ public class SubtitlePipeline : IDisposable
                 apiKey ?? _settings.DeepLApiKey,
                 serverUrl ?? _settings.DeepLServerUrl),
             TranslationEngine.Google2 => new Google2TranslationService(),
+            TranslationEngine.OpenAI => new OpenAITranslationService(
+                apiKey ?? _settings.OpenAIApiKey,
+                serverUrl ?? _settings.OpenAIApiUrl,
+                _settings.OpenAIModel),
             _ => new GoogleTranslationService(googleApiKey ?? _settings.GoogleApiKey)
         };
         _translator?.SwitchEngine(newEngine);
