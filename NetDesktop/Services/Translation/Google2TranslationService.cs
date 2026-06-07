@@ -5,7 +5,6 @@ namespace NetDesktop.Services.Translation;
 
 /// <summary>
 /// Google 翻译免费接口（clients5），无需 API Key。
-/// 注意：该接口非官方，可能随时被 Google 限制或关闭。
 /// </summary>
 public class Google2TranslationService : ITranslationService
 {
