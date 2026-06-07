@@ -1,149 +1,54 @@
-using NetDesktop.Models;
+using System.Threading;
 
 namespace NetDesktop.Services.Translation;
 
-/// <summary>
-/// 翻译器。支持两种翻译模式：
-/// - TranslateNewSentence: 用于 final 结果，新到的 final 会取消前一个
-/// - TranslateThrottled: 500ms 节流，用于 partial 结果（低延迟）
-/// </summary>
 public class ContextualTranslator
 {
-    private readonly List<string> _window = new();
-    private readonly int _maxWindowSize;
     private ITranslationService _engine;
     private readonly string _targetLang;
-    private readonly SemaphoreSlim _translateLock = new(1, 1);
-    private CancellationTokenSource? _throttleCts;
-    private CancellationTokenSource? _finalCts;
-    private readonly int _throttleDelayMs;
-    private readonly int _maxRetry;
-    private readonly int _retryDelayMs;
+    private long _requestSeq;
+    private long _displayedSeq;
+    private readonly object _deliveryLock = new();
 
-    /// <summary>
-    /// 翻译完成后触发，参数为 (原文, 译文)。
-    /// </summary>
     public event Action<string, string>? OnTranslationReady;
 
-    public ContextualTranslator(ITranslationService engine, string targetLang, int windowSize = 6,
-        int throttleDelayMs = 500, int maxRetry = 2, int retryDelayMs = 500)
+    public ContextualTranslator(ITranslationService engine, string targetLang)
     {
         _engine = engine;
         _targetLang = targetLang;
-        _maxWindowSize = windowSize;
-        _throttleDelayMs = throttleDelayMs;
-        _maxRetry = maxRetry;
-        _retryDelayMs = retryDelayMs;
     }
 
-    /// <summary>
-    /// 运行时切换翻译引擎。
-    /// </summary>
     public void SwitchEngine(ITranslationService newEngine)
     {
         _engine = newEngine;
     }
 
-    /// <summary>
-    /// 带上下文窗口的翻译。用于 final 结果，翻译质量高。
-    /// 新的 final 会取消前一个正在执行的翻译。
-    /// </summary>
-    public async Task TranslateNewSentence(string sentence, bool isCorrection = false)
+    public async Task TranslateRolling(string fullText)
     {
-        if (string.IsNullOrWhiteSpace(sentence)) return;
+        if (string.IsNullOrWhiteSpace(fullText)) return;
 
-        // 取消前一个 final 翻译
-        _finalCts?.Cancel();
-        _finalCts = new CancellationTokenSource();
-        var ct = _finalCts.Token;
+        var seq = Interlocked.Increment(ref _requestSeq);
 
-        if (isCorrection && _window.Count > 0)
-            _window[^1] = sentence;
-        else
-            _window.Add(sentence);
-
-        while (_window.Count > _maxWindowSize)
-            _window.RemoveAt(0);
-
-        await _translateLock.WaitAsync(ct);
         try
         {
-            string translation = await TranslateWithRetry(sentence, ct);
-            OnTranslationReady?.Invoke(sentence, translation);
+            var translation = await _engine.TranslateAsync(fullText, _targetLang);
+            TryDeliver(seq, fullText, translation);
         }
-        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            OnTranslationReady?.Invoke(sentence, $"[翻译错误: {ex.Message}]");
-        }
-        finally
-        {
-            _translateLock.Release();
+            TryDeliver(seq, fullText, $"[翻译错误: {ex.Message}]");
         }
     }
 
-    /// <summary>
-    /// 节流翻译。用于 partial 结果，500ms 内有新请求则取消前一个，无上下文窗口。
-    /// </summary>
-    public async Task TranslateThrottled(string sentence)
+    private void TryDeliver(long seq, string original, string translation)
     {
-        if (string.IsNullOrWhiteSpace(sentence)) return;
-
-        _throttleCts?.Cancel();
-        _throttleCts = new CancellationTokenSource();
-        var ct = _throttleCts.Token;
-
-        try
+        lock (_deliveryLock)
         {
-            await Task.Delay(_throttleDelayMs, ct);
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-
-        await _translateLock.WaitAsync(ct);
-        try
-        {
-            string translation = await TranslateWithRetry(sentence, ct);
-            OnTranslationReady?.Invoke(sentence, translation);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            OnTranslationReady?.Invoke(sentence, $"[翻译错误: {ex.Message}]");
-        }
-        finally
-        {
-            _translateLock.Release();
-        }
-    }
-
-    private async Task<string> TranslateWithRetry(string text, CancellationToken ct)
-    {
-        string lastResult = text;
-        for (int attempt = 0; attempt <= _maxRetry; attempt++)
-        {
-            lastResult = await _engine.TranslateAsync(text, _targetLang, ct);
-
-            // 成功
-            if (!lastResult.StartsWith("[翻译"))
-                return lastResult;
-
-            // 不可重试的错误：直接返回
-            if (lastResult.StartsWith("[翻译失败:") || lastResult.StartsWith("[翻译错误:"))
-                return lastResult;
-
-            // 可重试：429/5xx → 指数退避；超时 → 固定延迟
-            if (attempt < _maxRetry)
+            if (seq > _displayedSeq)
             {
-                if (lastResult.StartsWith("[翻译重试:"))
-                    await Task.Delay(_retryDelayMs * (int)Math.Pow(2, attempt), ct);
-                else
-                    await Task.Delay(_retryDelayMs, ct);
+                _displayedSeq = seq;
+                OnTranslationReady?.Invoke(original, translation);
             }
         }
-        return lastResult;
     }
-
 }
