@@ -84,6 +84,12 @@ public partial class MainWindow : Window
         PageOverlay.Visibility = tag == "0" ? Visibility.Visible : Visibility.Collapsed;
         PageHistory.Visibility = tag == "1" ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = tag == "2" ? Visibility.Visible : Visibility.Collapsed;
+
+        if (tag == "2")
+        {
+            _settings = _settingsService.Load();
+            LoadSettingsToUI();
+        }
     }
 
     private void CbEngine_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -211,6 +217,8 @@ public partial class MainWindow : Window
 
     private void ApplyAppearance()
     {
+        RootBorder.Opacity = _settings.Opacity;
+
         var bg = ParseColor(_settings.BackgroundColor);
         RootBorder.Background = new SolidColorBrush(bg);
 
