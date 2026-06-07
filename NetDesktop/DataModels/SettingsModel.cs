@@ -14,7 +14,7 @@ public class SettingsModel
     public double Opacity { get; set; } = 0.85;
     public string SubtitleColor { get; set; } = "#FFFFFF";
     public string TranslationColor { get; set; } = "#FFD700";
-    public string BackgroundColor { get; set; } = "#CC0D0D1A";
+    public string BackgroundColor { get; set; } = "#0D0D1A";
     public double FontSize { get; set; } = 17;
     public string FontWeight { get; set; } = "SemiBold";
 
