@@ -4,7 +4,7 @@
         Title="字幕翻译"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="True"
-        Left="200" Top="800" Height="120" Width="520"
+        Left="200" Top="800" Height="240" Width="520"
         MinWidth="260" MinHeight="60"
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded" Closing="Window_Closing">
@@ -271,25 +271,15 @@
                                 ToolTip="展开导航" Click="ExpandNav_Click"/>
                     </Grid>
 
-                    <!-- Original text: 超长时左侧裁剪，右侧始终显示最新，无滚动条 -->
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Disabled"
-                                  FlowDirection="RightToLeft"
-                                  VerticalAlignment="Center" Margin="0,4,0,2">
-                        <TextBlock x:Name="OriginalText"
-                                   Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
-                                   TextWrapping="NoWrap" FlowDirection="LeftToRight"/>
-                    </ScrollViewer>
+                    <!-- Original text -->
+                    <TextBlock x:Name="OriginalText" Grid.Row="1"
+                               Foreground="#FFFFFF" FontSize="17" FontWeight="SemiBold"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,4,0,2"/>
 
                     <!-- Translated text -->
-                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Disabled"
-                                  FlowDirection="RightToLeft"
-                                  VerticalAlignment="Center" Margin="0,2,0,0">
-                        <TextBlock x:Name="TranslatedText"
-                                   Foreground="#FFD700" FontSize="14"
-                                   TextWrapping="NoWrap" FlowDirection="LeftToRight"/>
-                    </ScrollViewer>
+                    <TextBlock x:Name="TranslatedText" Grid.Row="2"
+                               Foreground="#FFD700" FontSize="14"
+                               TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,2,0,0"/>
 
                     <!-- History cards: 可滚动的历史翻译列表 -->
                     <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
