@@ -204,6 +204,8 @@ public partial class MainWindow : Window
 
     private void ApplyAppearance()
     {
+        RootBorder.Opacity = _settings.Opacity;
+
         var bg = ParseColor(_settings.BackgroundColor);
         RootBorder.Background = new SolidColorBrush(bg);
 

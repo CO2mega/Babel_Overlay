@@ -36,97 +36,6 @@
             <Setter Property="CaretBrush" Value="#FFFFFF"/>
         </Style>
 
-        <!-- ComboBox item style (dark) -->
-        <Style x:Key="ComboItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Background" Value="#1E1E2E"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Padding" Value="8,5"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ComboBox style (dark) -->
-        <Style x:Key="ComboStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="#22FFFFFF"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#44FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="ItemContainerStyle" Value="{StaticResource ComboItemStyle}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Border x:Name="Bd" Grid.ColumnSpan="2"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="2"/>
-                            <ContentPresenter x:Name="ContentSite" Grid.Column="0"
-                                              IsHitTestVisible="False"
-                                              Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                              Margin="{TemplateBinding Padding}"
-                                              VerticalAlignment="Center"/>
-                            <ToggleButton x:Name="ToggleBtn" Grid.ColumnSpan="2"
-                                          Background="Transparent" BorderThickness="0"
-                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                          ClickMode="Press">
-                                <ToggleButton.Template>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Border Background="Transparent"/>
-                                    </ControlTemplate>
-                                </ToggleButton.Template>
-                            </ToggleButton>
-                            <Path x:Name="Arrow" Grid.Column="1" Fill="#AAAAAA"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  Margin="0,0,8,0" Data="M 0 0 L 4 4 L 8 0 Z"/>
-                            <Popup x:Name="Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   Placement="Bottom" AllowsTransparency="True"
-                                   Focusable="False" PopupAnimation="Slide">
-                                <Border Background="#1E1E2E" BorderBrush="#44FFFFFF" BorderThickness="1"
-                                        CornerRadius="2" MinWidth="{TemplateBinding ActualWidth}">
-                                    <ScrollViewer MaxHeight="200">
-                                        <ItemsPresenter/>
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsDropDownOpen" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#5B9BD5"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#66FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <!-- Button style -->
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Background" Value="#5B9BD5"/>
@@ -336,7 +245,7 @@
                             <TextBlock Text="翻译" Style="{StaticResource SectionHeader}"/>
 
                             <TextBlock Text="翻译引擎" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox x:Name="CbEngine" Style="{StaticResource ComboStyle}" Margin="0,0,0,10"
+                            <ComboBox x:Name="CbEngine" Margin="0,0,0,10"
                                       SelectionChanged="CbEngine_SelectionChanged">
                                 <ComboBoxItem>Google</ComboBoxItem>
                                 <ComboBoxItem>Google2（免费）</ComboBoxItem>
@@ -436,7 +345,7 @@
                             </Grid>
 
                             <TextBlock Text="字重" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox x:Name="CbFontWeight" Style="{StaticResource ComboStyle}" Margin="0,0,0,10">
+                            <ComboBox x:Name="CbFontWeight" Margin="0,0,0,10">
                                 <ComboBoxItem>Normal</ComboBoxItem>
                                 <ComboBoxItem>Medium</ComboBoxItem>
                                 <ComboBoxItem>SemiBold</ComboBoxItem>
