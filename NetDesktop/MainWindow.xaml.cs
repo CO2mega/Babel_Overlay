@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -7,6 +7,7 @@ using System.Windows.Media;
 using NetDesktop.Models;
 using NetDesktop.Services;
 using NetDesktop.Services.Display;
+using Wpf.Ui.Controls;
 
 namespace NetDesktop;
 
@@ -64,22 +65,22 @@ public partial class MainWindow : Window
             DragMove();
     }
 
-    private void ExpandNav_Click(object sender, RoutedEventArgs e)
+    private void CloseBtn_Click(object sender, RoutedEventArgs e)
     {
-        NavSidebar.Visibility = Visibility.Visible;
-        NavColumn.Width = new GridLength(160);
+        Close();
     }
 
-    private void CollapseNav_Click(object sender, RoutedEventArgs e)
+    private void NavItemClick(object sender, RoutedEventArgs e)
     {
-        NavSidebar.Visibility = Visibility.Collapsed;
-        NavColumn.Width = new GridLength(0);
-    }
-
-    private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (NavList.SelectedItem is not ListBoxItem item) return;
+        if (sender is not Wpf.Ui.Controls.NavigationViewItem item) return;
         var tag = item.Tag?.ToString();
+
+        if (tag == "collapse")
+        {
+            NavSidebar.IsPaneOpen = false;
+            return;
+        }
+
         PageOverlay.Visibility = tag == "0" ? Visibility.Visible : Visibility.Collapsed;
         PageHistory.Visibility = tag == "1" ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = tag == "2" ? Visibility.Visible : Visibility.Collapsed;
@@ -94,10 +95,9 @@ public partial class MainWindow : Window
         OpenAIPanel.Visibility = idx == 3 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    
     private void ColorBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (sender is not TextBox tb) return;
+        if (sender is not System.Windows.Controls.TextBox tb) return;
         var rect = tb.Name switch
         {
             "TbSubtitleColor" => RectSubtitleColor,
@@ -250,5 +250,4 @@ public partial class MainWindow : Window
             _ => FontWeights.SemiBold
         };
     }
-    
 }

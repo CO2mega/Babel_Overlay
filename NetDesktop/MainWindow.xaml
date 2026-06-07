@@ -1,6 +1,7 @@
 <Window x:Class="NetDesktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="字幕翻译"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="True"
@@ -9,34 +10,11 @@
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded" Closing="Window_Closing">
     <Window.Resources>
-        <!-- Nav item style -->
-        <Style x:Key="NavItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Foreground" Value="#CCCCCC"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                BorderThickness="3,0,0,0" BorderBrush="Transparent"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#5B9BD5"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <!-- Label style -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#AAAAAA"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
         </Style>
 
         <!-- Section header style -->
@@ -45,13 +23,6 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,16,0,6"/>
-        </Style>
-
-        <!-- Label style -->
-        <Style x:Key="FieldLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#AAAAAA"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Margin" Value="0,0,0,3"/>
         </Style>
 
         <!-- Input style -->
@@ -180,32 +151,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <!-- Icon button style -->
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#AAAAAA"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#22FFFFFF"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     <Border x:Name="RootBorder" CornerRadius="10" Background="#CC0D0D1A"
@@ -213,42 +158,44 @@
             MouseLeftButtonDown="Border_MouseLeftButtonDown">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="NavColumn" Width="0"/>
+                <ColumnDefinition x:Name="NavColumn" Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ===== SIDEBAR ===== -->
-            <Grid x:Name="NavSidebar" Grid.Column="0" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Title bar / drag area -->
-                <Border Grid.Row="0" Padding="16,14,16,10"
-                        MouseLeftButtonDown="Border_MouseLeftButtonDown">
-                    <TextBlock Text="字幕翻译" Foreground="#FFFFFF" FontSize="15" FontWeight="SemiBold"/>
-                </Border>
-
-                <!-- Nav items -->
-                <ListBox x:Name="NavList" Grid.Row="1"
-                         Background="Transparent" BorderThickness="0"
-                         SelectionChanged="NavList_SelectionChanged">
-                    <ListBoxItem Style="{StaticResource NavItemStyle}" Tag="0">实时字幕</ListBoxItem>
-                    <ListBoxItem Style="{StaticResource NavItemStyle}" Tag="1">历史记录</ListBoxItem>
-                    <ListBoxItem Style="{StaticResource NavItemStyle}" Tag="2">设置</ListBoxItem>
-                </ListBox>
-
-                <!-- Collapse button -->
-                <Button Grid.Row="2" Content="收起 ←" Style="{StaticResource IconButton}"
-                        Margin="10,0,10,12" HorizontalAlignment="Left"
-                        Click="CollapseNav_Click"/>
-            </Grid>
+            <!-- ===== SIDEBAR: NavigationView ===== -->
+            <ui:NavigationView x:Name="NavSidebar" Grid.Column="0"
+                               IsBackButtonVisible="Collapsed"
+                               OpenPaneLength="180"
+                               CompactPaneLength="48"
+                               IsPaneOpen="False"
+                               PaneDisplayMode="Left"
+                               Background="Transparent">
+                
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem Content="实时字幕" Tag="0" Click="NavItemClick">
+                        <ui:NavigationViewItem.Icon>
+                            <ui:SymbolIcon Symbol="ChatSparkle16" />
+                        </ui:NavigationViewItem.Icon>
+                    </ui:NavigationViewItem>
+                    <ui:NavigationViewItem Content="历史记录" Tag="1" Click="NavItemClick">
+                        <ui:NavigationViewItem.Icon>
+                            <ui:SymbolIcon Symbol="History20" />
+                        </ui:NavigationViewItem.Icon>
+                    </ui:NavigationViewItem>
+                    
+                </ui:NavigationView.MenuItems>
+                <ui:NavigationView.FooterMenuItems>
+                    <ui:NavigationViewItem Content="设置" Tag="2" Click="NavItemClick">
+                        <ui:NavigationViewItem.Icon>
+                            <ui:SymbolIcon Symbol="Settings24" />
+                        </ui:NavigationViewItem.Icon>
+                    </ui:NavigationViewItem>
+                </ui:NavigationView.FooterMenuItems>
+            </ui:NavigationView>
 
             <!-- Sidebar separator -->
             <Rectangle Grid.Column="0" Width="1" HorizontalAlignment="Right"
-                       Fill="#22FFFFFF" Visibility="{Binding Visibility, ElementName=NavSidebar}"/>
+                       Fill="#22FFFFFF"/>
 
             <!-- ===== CONTENT AREA ===== -->
             <Grid x:Name="ContentArea" Grid.Column="1">
@@ -261,13 +208,10 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Status row with expand button -->
+                    <!-- Status row -->
                     <Grid Grid.Row="0">
                         <TextBlock x:Name="StatusText" Text="启动中..."
-                                   Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
-                        <Button x:Name="ExpandNavBtn" Content="☰" Style="{StaticResource IconButton}"
-                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                                ToolTip="展开导航" Click="ExpandNav_Click"/>
+                                   Foreground="#888" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                     </Grid>
 
                     <!-- Original text -->
@@ -483,7 +427,7 @@
                                            VerticalAlignment="Center"/>
                             </Grid>
 
-                            <TextBlock Text="背景颜色（十六进制，含透明度 #AARRGGBB）" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="背景颜色（十六进制）" Style="{StaticResource FieldLabel}"/>
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -497,37 +441,6 @@
                                            VerticalAlignment="Center"/>
                             </Grid>
 
-                            <!-- ENDPOINT SECTION -->
-                            <TextBlock Text="端点检测" Style="{StaticResource SectionHeader}"/>
-
-                            <TextBlock Text="静音结束阈值（秒）" Style="{StaticResource FieldLabel}"/>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="36"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider x:Name="SlTrailingSilence" Grid.Column="0" Minimum="0.5" Maximum="5.0"
-                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblTrailingSilence" Grid.Column="1"
-                                           Foreground="#AAAAAA" FontSize="11"
-                                           VerticalAlignment="Center" Margin="4,0,0,0"/>
-                            </Grid>
-
-                            <TextBlock Text="最短语音长度（秒）" Style="{StaticResource FieldLabel}"/>
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="36"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider x:Name="SlUtteranceLength" Grid.Column="0" Minimum="0.1" Maximum="5.0"
-                                        TickFrequency="0.1" IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblUtteranceLength" Grid.Column="1"
-                                           Foreground="#AAAAAA" FontSize="11"
-                                           VerticalAlignment="Center" Margin="4,0,0,0"/>
-                            </Grid>
-
                         </StackPanel>
                     </ScrollViewer>
 
@@ -535,8 +448,35 @@
                             Margin="16,8" HorizontalAlignment="Right"
                             Click="SaveSettings_Click"/>
                 </Grid>
-
+                <Button Content="&#x2715;" HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="0,6,8,0" Background="Transparent" BorderThickness="0"
+                        Foreground="#888888" FontSize="13" Padding="4,2" Cursor="Hand"
+                        ToolTip="关闭" Click="CloseBtn_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#44FF4444"/>
+                                                <Setter Property="Foreground" Value="#FF6666"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </Grid>
+            
+            
         </Grid>
+        
     </Border>
 </Window>
