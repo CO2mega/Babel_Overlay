@@ -289,29 +289,7 @@
                             <TextBlock Text="目标语言（如 zh / ja / ko）" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="TbTargetLang" Style="{StaticResource InputBox}"
                                      Margin="0,0,0,10"/>
-
-                            <!-- ADVANCED TRANSLATION SETTINGS -->
-                            <TextBlock Text="高级翻译设置" Style="{StaticResource SectionHeader}"/>
-
-                            <TextBlock Text="请求超时（秒）" Style="{StaticResource FieldLabel}"/>
-                            <TextBox x:Name="TbTimeoutSeconds" Style="{StaticResource InputBox}"
-                                     Margin="0,0,0,10"/>
-
-                            <TextBlock Text="失败重试次数" Style="{StaticResource FieldLabel}"/>
-                            <TextBox x:Name="TbMaxRetry" Style="{StaticResource InputBox}"
-                                     Margin="0,0,0,10"/>
-
-                            <TextBlock Text="重试间隔（毫秒）" Style="{StaticResource FieldLabel}"/>
-                            <TextBox x:Name="TbRetryDelayMs" Style="{StaticResource InputBox}"
-                                     Margin="0,0,0,10"/>
-
-                            <TextBlock Text="节流延迟（毫秒）" Style="{StaticResource FieldLabel}"/>
-                            <TextBox x:Name="TbThrottleDelayMs" Style="{StaticResource InputBox}"
-                                     Margin="0,0,0,10"/>
-
-                            <TextBlock Text="上下文窗口大小" Style="{StaticResource FieldLabel}"/>
-                            <TextBox x:Name="TbContextWindowSize" Style="{StaticResource InputBox}"
-                                     Margin="0,0,0,10"/>
+                            
 
                             <!-- APPEARANCE SECTION -->
                             <TextBlock Text="外观" Style="{StaticResource SectionHeader}"/>

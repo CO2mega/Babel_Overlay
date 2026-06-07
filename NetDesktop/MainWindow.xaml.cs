@@ -76,6 +76,12 @@ public partial class MainWindow : Window
         PageOverlay.Visibility = tag == "0" ? Visibility.Visible : Visibility.Collapsed;
         PageHistory.Visibility = tag == "1" ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = tag == "2" ? Visibility.Visible : Visibility.Collapsed;
+
+        if (tag == "2")
+        {
+            _settings = _settingsService.Load();
+            LoadSettingsToUI();
+        }
     }
 
     private void CbEngine_SelectionChanged(object sender, SelectionChangedEventArgs e)
