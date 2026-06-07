@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="WPF-UI" Version="3.*" />
         <PackageReference Include="DeepL.net" Version="1.21.0" />
     </ItemGroup>
 
