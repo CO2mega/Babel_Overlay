@@ -2,11 +2,14 @@
 
 实时屏幕翻译工具，支持两种模式。
 
+## 演示视频
+
+https://pic.pelargonium.top/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91.mp4
+
 ## 版本说明
 
 ### Local-ASR
-适用于 **Windows 11 22H2 及更早版本**，这些版本没有系统内置的实时字幕功能。
-
+通用，无需系统支持
 - 使用本地 ASR（自动语音识别）引擎（Sherpa-ONNX）
 - 无需系统字幕支持
 - 独立运行，不依赖系统组件
@@ -19,12 +22,6 @@
 - 更低的资源占用
 - 需要 Windows 11 22H2+ 系统支持
 
-## 系统要求
-
-| 版本 | 系统要求 |
-|------|----------|
-| Local-ASR | Windows 10/11（任意版本） |
-| Live-Captions | Windows 11 22H2+ |
 
 ## 项目架构
 
@@ -108,21 +105,6 @@ STT 模块根据版本不同有两种实现：Local-ASR 使用 Sherpa-ONNX 在�
 ## 使用方法
 
 1. 根据你的系统版本选择对应的文件夹
-2. 运行 `NetDesktop.exe`
-3. 开始实时翻译
-
-## 构建
-
-需要 .NET SDK 和 Visual Studio。
-
-```bash
-dotnet build
-```
-
-## 演示视频
-
-https://pic.pelargonium.top/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91.mp4
-
-## 许可证
-
-MIT License
+2. 构建
+3. 运行 `NetDesktop.exe`
+4. 开始实时翻译
